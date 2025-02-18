@@ -1,0 +1,6 @@
+rules:
+- id: unwrapped-result
+  pattern: $VAR.unwrap()
+  message: "Unwrap detected - potential panic risk"
+  languages: [rust]
+  severity: WARNING
