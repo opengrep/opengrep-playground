@@ -1,10 +1,10 @@
 <template>
     <button @click="handleRunBinary">Run Binary</button>
-    
+
     <div v-if="state.isLoading" class="loading-container">
         <div class="loading-circle"></div>
     </div>
-    
+
     <div class="results-container" v-else>
         <div v-if="state.parsedResult">
             <div v-for="run in state.parsedResult.runs" :key="run.tool.driver.name" class="run-card">
@@ -12,9 +12,9 @@
                 <div v-for="result in run.results" :key="result.ruleId" class="result-card">
                     <h4>Rule: {{ result.ruleId }}</h4>
                     <p>{{ result.message.text }}</p>
-                    <div v-for="location in result.locations" :key="location.physicalLocation.artifactLocation.uri" class="location-card">
-                        <p><strong>File:</strong> {{ location.physicalLocation.artifactLocation.uri }}</p>
-                        <p><strong>Snippet:</strong> {{ location.physicalLocation.region.snippet.text }}</p>
+                    <div v-for="location in result.locations" :key="location.physicalLocation.artifactLocation.uri"
+                        class="location-card">
+                        <p><strong>Snippet:</strong><br><br> {{ location.physicalLocation.region.snippet.text }}</p>
                     </div>
                 </div>
             </div>
@@ -22,25 +22,21 @@
             <div class="test-results">
                 <h3>{{ passedTests }} / {{ totalTests }} Tests Passed</h3>
                 <div v-for="(fileResults, filePath) in state.testResults.results" :key="filePath" class="test-file">
-                    <h4>File: {{ filePath }}</h4>
 
-                    <div 
-                        v-for="(check, ruleId) in fileResults.checks" 
-                        :key="ruleId"
-                        class="test-result-card"
-                        :class="{ 'passed': check.passed, 'failed': !check.passed }"
-                    >
+                    <div v-for="(check, ruleId) in fileResults.checks" :key="ruleId" class="test-result-card"
+                        :class="{ 'passed': check.passed, 'failed': !check.passed }">
                         <span class="status-badge" :class="{ 'pass': check.passed, 'fail': !check.passed }">
                             {{ check.passed ? 'PASS' : 'FAIL' }}
                         </span>
-                        
+
                         <h4 class="rule-title">Rule: {{ ruleId }}</h4>
 
                         <div style="display: flex; justify-content: space-between;">
                             <div v-for="(matches, codePath) in check.matches" :key="codePath" class="match-info">
-                                <p><strong>Expected Lines:</strong> 
-                                    <span v-for="(line, index) in matches.expected_lines" :key="line" :class="getLineClass(line, matches.reported_lines)">
-                                         {{ ' ' + line }}<span v-if="index < matches.expected_lines.length - 1">, </span>
+                                <p><strong>Expected Lines:</strong>
+                                    <span v-for="(line, index) in matches.expected_lines" :key="line"
+                                        :class="getLineClass(line, matches.reported_lines)">
+                                        {{ ' ' + line }}<span v-if="index < matches.expected_lines.length - 1">, </span>
                                     </span>
                                 </p>
                                 <p><strong>Reported Lines:</strong> {{ matches.reported_lines.join(', ') }}</p>
@@ -113,35 +109,28 @@ const passedTests = computed(() => {
 
 watch(
     () => [props.language, props.ruleFile, props.codeSampleFile],
-    async (newValues) => {
-        if (newValues.every(value => value)) {
-            await initializePaths();
-        }
+    async (newValues) => {       
+            state.rootDir = await getRootDir();
+            state.rulesPath = props.ruleFile;
+            state.codeSamplePath = props.codeSampleFile;
     },
     { immediate: true }
 );
 
-async function initializePaths() {
-    try {
-        state.rootDir = await getRootDir();
-        state.rulesPath = await joinPath(state.rootDir, 'rules', props.ruleFile);
-        state.codeSamplePath = await joinPath(state.rootDir, 'code', props.language, props.codeSampleFile);
-    } catch (error) {
-        console.error("Error initializing paths:", error);
-    }
-}
-
 async function handleRunBinary() {
 
     try {
-        state.isLoading = true;
-       
+          state.isLoading = true;
+
         const binaryPath = await joinPath(state.rootDir, 'opengrep_osx_arm64');
-        const response = await runBinary(binaryPath, ["scan -f", state.rulesPath, state.codeSamplePath, "--sarif", "--dataflow-traces", "--matching-explanations", "--json-output=tmp/findings.json"]);
+
+        const [response, testResponse] = await Promise.all([
+            runBinary(binaryPath, ["scan", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--sarif", "--dataflow-traces", "--matching-explanations", "--json-output=tmp/findings.json"]),
+            runBinary(binaryPath, ["scan", "--test", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--dataflow-traces --json"])
+        ]);
+
         state.result = response.output;
         state.parsedResult = JSON.parse(response.output);
-
-        const testResponse = await runBinary(binaryPath, ["scan", "--test", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--dataflow-traces --json"]);
         state.testResults = JSON.parse(testResponse.output);
 
         emit('binaryEnded', {
@@ -180,7 +169,7 @@ h3 {
 }
 
 /* Test Result Card */
-.test-result-card {
+.test-result-card, .result-card {
     border-radius: 6px;
     padding: 15px;
     margin-top: 10px;
@@ -285,7 +274,12 @@ button:hover {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 </style>

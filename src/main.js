@@ -37,11 +37,36 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // TODO validate if this is necessary
-  // cleanup tmp files
-  // app.on('before-quit', () => {
-  //   console.log('Cleaning up temporary files...');
-  //   fs.rmSync(path.join(app.getAppPath(), 'tmp'), { recursive: true, force: true });
-  // });
+  // cleanup tmp filee
+
+  function clearTempFolder() {
+    const tempPath = path.join(app.getAppPath(), 'tmp'); // Change to match your temp folder
+    if (fs.existsSync(tempPath)) {
+      fs.promises.readdir(tempPath).then(files => {
+        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
+      }).then(() => {
+        console.log(`Cleared tmp folder: ${tempPath}`);
+      }).catch(err => {
+        console.error(`Error clearing tmp folder: ${err.message}`);
+      });
+    }
+  }
+
+  app.on('ready', () => {
+    clearTempFolder(); // Clear temp files on app ready
+  });
+
+  app.on('will-quit', () => {
+    clearTempFolder(); // Clear temp files before quitting
+  });
+
+  app.on('before-quit', () => {
+    clearTempFolder(); // Ensure cleanup before exiting
+  });
+
+  app.on('quit', () => {
+    clearTempFolder(); // Extra safety cleanup
+  });
 
 
   // Handle running binaries from the main process
@@ -92,9 +117,9 @@ app.whenReady().then(() => {
   });
 
   // Handle file writing from the main process
-  ipcMain.handle("write-file", async (event, filePath, content) => {
+  ipcMain.handle("write-file", async (event, filePath, content, options) => {
     try {
-      await fs.promises.writeFile(filePath, content);
+      await fs.promises.writeFile(filePath, content, options);
       return { success: true };
     } catch (error) {
       return { error: error.message };

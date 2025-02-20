@@ -1,7 +1,7 @@
 <template>
   <div class="inspect-rule">
     <h2 class="title">Inspect Rule</h2>
-    <TreeView :data="parsedData" />
+    <TreeView :data="parsedData" @node-hover="handleHover" />
   </div>
 </template>
 
@@ -14,6 +14,7 @@ const joinPath = inject('$joinPath');
 const readFile = inject('$readFile');
 
 const parsedData = ref(null);
+const emit = defineEmits(['inspectLocationChanged']);
 
 async function generateDebuggingInfo() {
   const rootDir = await getRootDir();
@@ -26,54 +27,114 @@ async function generateDebuggingInfo() {
 }
 
 function parseExplanation(explanations) {
-  let structuredData = {
-    name: "Taint",
-    children: [],
-  };
+  if (!explanations || explanations.length === 0) return null;
 
-  explanations.forEach(exp => {
+  let rootNode = null;
+
+  explanations.forEach((exp) => {
+    let currentNode = {
+      name: formatOpName(exp.op),
+      debugMatches: extractUniqueMatches(exp),
+      children: [],
+    };
+
     if (exp.op === "Taint") {
-      let sources = exp.children.find((c) => c.op === "TaintSource") || {};
-      let sinks = exp.children.find((c) => c.op === "TaintSink") || {};
+      currentNode.children = processTaintChildren(exp.children);
+    } else {
+      currentNode.children = processChildren(exp.children);
+    }
 
-      let patternSources = {
-        name: "pattern-sources:",
-        children: extractPatterns(sources.children),
-      };
-
-      let patternSinks = {
-        name: "pattern-sinks:",
-        children: [
-          {
-            name: "patterns:",
-            children: extractPatterns(sinks.children),
-          },
-        ],
-      };
-
-      structuredData.children.push(patternSources);
-      structuredData.children.push(patternSinks);
+    // Set the first explanation as the root node
+    if (!rootNode) {
+      rootNode = currentNode;
     }
   });
 
-  return structuredData;
+  return rootNode;
 }
 
-function extractPatterns(children) {
+function processTaintChildren(children) {
+  let sourcesNode = { name: "pattern-sources", debugMatches: [], children: [] };
+  let sinksNode = { name: "pattern-sinks", debugMatches: [], children: [] };
+
+  children.forEach((child) => {
+    if (child.op === "TaintSource") {
+      sourcesNode.debugMatches = extractUniqueMatches(child);
+      sourcesNode.children = processChildren(child.children);
+    } else if (child.op === "TaintSink") {
+      let sinkPatternsNode = {
+        name: "patterns",
+        debugMatches: extractUniqueMatches(child),
+        children: processChildren(child.children),
+      };
+      sinksNode.children.push(sinkPatternsNode);
+    }
+  });
+
+  return [sourcesNode, sinksNode];
+}
+
+function processChildren(children) {
   if (!children) return [];
 
-  return children.map((c) => {
-    let node = {};
-debugger;
-    if (Array.isArray(c.op)) {
-      node.name = `${c.op[0] === 'XPat' ? 'pattern' : c.op[0]}: ${c.op[1]}`;
-    } else {
-      node.name = `patterns:`;
-      node.children = extractPatterns(c.children);
+  let result = [];
+  let stack = [...children];
+
+  while (stack.length > 0) {
+    let node = stack.pop();
+
+    let newNode = {
+      name: formatOpName(node.op),
+      debugMatches: extractUniqueMatches(node),
+      children: [],
+    };
+
+    if (node.children && node.children.length > 0) {
+      newNode.children = processChildren(node.children);
     }
 
-    return node;
-  });
+    result.push(newNode);
+  }
+
+  return result;
+}
+
+function extractUniqueMatches(nodes) {
+  if (!nodes.matches || !Array.isArray(nodes.matches)) return null;
+
+  return nodes.matches.reduce((acc, match) => {
+    if (!acc.some(existingMatch =>
+      JSON.stringify(existingMatch.start) === JSON.stringify(match.start) &&
+      JSON.stringify(existingMatch.end) === JSON.stringify(match.end))) {
+      acc.push(match);
+    }
+    return acc;
+  }, []).map(match => ({
+    start: match.start,
+    end: match.end,
+  }));
+}
+
+function formatOpName(op) {
+  if (!op) return "Unknown";
+
+  if (Array.isArray(op)) {
+    return `pattern: ${op[1]}`;
+  }
+
+  const opMapping = {
+    "Or": "pattern-either",
+    "And": "patterns",
+    "Taint": "taint",
+    "TaintSource": "pattern-sources",
+    "TaintSink": "pattern-sinks",
+  };
+
+  return opMapping[op] || op.toLowerCase();
+}
+
+function handleHover(debugCodeLocation) {
+  emit('inspectLocationChanged', debugCodeLocation);
 }
 
 // Expose the determineCodeFlowInformation function to the parent component
@@ -87,6 +148,7 @@ defineExpose({ generateDebuggingInfo });
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;;
 }
 
 .title {

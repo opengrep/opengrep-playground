@@ -11,12 +11,9 @@
         <div class="column-view">
           <div class="editor-header">
             <h3>Rule Editor</h3>
-            <select class="select-container" v-model="selectedRuleFile" @change="loadSelectedRuleFile">
-              <option v-for="file in ruleFiles" :key="file" :value="file">{{ file }}</option>
-            </select>
           </div>
           <div class="code-editor-container">
-            <CodeEditor :language="'yaml'" :code="state.yamlExample" />
+            <RuleEditor @update:code="handleRuleUpdate" @languageDetermined="handleCodeEditorLanguage" />
           </div>
         </div>
 
@@ -24,12 +21,9 @@
         <div class="column-view">
           <div class="editor-header">
             <h3>Language Editor</h3>
-            <select class="select-container" v-model="selectedCodeSampleFile" @change="loadCodeSampleFiles">
-              <option v-for="file in codeSampleFiles" :key="file" :value="file">{{ file }}</option>
-            </select>
           </div>
           <div class="code-editor-container">
-            <CodeEditor ref="codeEditor" :language="language" :code="state.javascriptExample"
+            <CodeEditor ref="codeEditor" :language="state.languageDetails?.monacoLanguage"
               :jsonresult="state.jsonResult" @update:code="handleCodeUpdate" />
           </div>
         </div>
@@ -38,14 +32,15 @@
         <div class="column-view">
           <h3>Results</h3>
           <RuleResults :style="{flex: 1, display: 'grid', gap: '12px'}" :language="language"
-            :ruleFile="selectedRuleFile" :codeSampleFile="selectedCodeSampleFile" @binaryEnded="handleBinaryEnded"
+            :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath" @binaryEnded="handleBinaryEnded"
             @showDataFlows="handleShowDataFlows" />
         </div>
       </div>
-       <!-- Debug Rule Area -->
-       <div class="debug-section">
-          <DebugSection ref="debugSection" :ruleFile="selectedRuleFile" :codeSampleFile="selectedCodeSampleFile" />
-        </div>
+      <!-- Debug Rule Area -->
+      <div class="debug-section">
+        <DebugSection ref="debugSection" :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath"
+          @inspectLocationChanged="handleInspectLocationChanged" />
+      </div>
     </div>
   </div>
 </template>
@@ -55,79 +50,28 @@ import { reactive, onMounted, inject, ref } from 'vue';
 import CodeEditor from './components/CodeEditor.vue';
 import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
+import RuleEditor from './components/RuleEditor.vue';
 
 const getRootDir = inject('$getRootDir');
 const joinPath = inject('$joinPath');
-const readFile = inject('$readFile');
 const writeFile = inject('$writeFile');
-const readDir = inject('$readDir');
 
 const state = reactive({
-  yamlExample: '',
-  javascriptExample: '',
   jsonResult: null,
   rootDir: '',
+  languageDetails: null,
+  selectedRuleFilePath: null,
+  selectedCodeSampleFilePath: null,
 });
 
-const ruleFiles = ref([]);
-const selectedRuleFile = ref('');
-const codeSampleFiles = ref([]);
-const selectedCodeSampleFile = ref('');
-
 // TODO make language coming from user input
-const language = 'javascript';
-
 const codeEditor = ref(null);
 const debugSection = ref(null);
+const languageCode = ref('');
 
 onMounted(async () => {
   state.rootDir = await getRootDir();
-
-  await initializeFiles(state.rootDir);
 });
-
-async function initializeFiles(rootDir) {
-  await loadRuleFiles(rootDir);
-  await loadCodeSampleFiles(rootDir);
-}
-
-async function loadRuleFiles(rootDir) {
-  const rulesDir = await joinPath(rootDir, 'rules');
-  ruleFiles.value = await readDir(rulesDir);
-
-  if (ruleFiles.value.length > 0) {
-    selectedRuleFile.value = ruleFiles.value[0];
-    await loadSelectedRuleFile();
-  }
-}
-
-async function loadCodeSampleFiles(rootDir) {
-  const languageDir = await joinPath(rootDir, 'code', language);
-  codeSampleFiles.value = await readDir(languageDir);
-
-  if (codeSampleFiles.value.length > 0) {
-    selectedCodeSampleFile.value = codeSampleFiles.value[0];
-    await loadSelectedCodeSampleFile();
-  }
-}
-
-async function loadFile(filePath) {
-  try {
-    return await readFile(filePath);
-  } catch (error) {
-    console.error("Failed to read file:", error);
-  }
-}
-
-async function loadSelectedRuleFile() {
-  const yamlPath = await joinPath(state.rootDir, 'rules', selectedRuleFile.value);
-  state.yamlExample = await loadFile(yamlPath);
-}
-
-async function loadSelectedCodeSampleFile() {
-  const languagePath = await joinPath(state.rootDir, 'code', language, selectedCodeSampleFile.value);
-  state.javascriptExample = await loadFile(languagePath);
-}
 
 async function handleBinaryEnded(result) {
   state.jsonResult = result;
@@ -141,14 +85,36 @@ function handleShowDataFlows() {
 };
 
 async function handleCodeUpdate(code) {
-  console.log('Code updated:', code);
-  try{
-  const codeSampleFile = await joinPath(state.rootDir, 'code', language, selectedCodeSampleFile.value);
-    await writeFile(codeSampleFile, code);
-    
-  }catch(error) {
+  try {
+    languageCode.value = code;
+    const codeSampleFilePath = await joinPath(state.rootDir, 'tmp', `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
+    await writeFile(codeSampleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    state.selectedCodeSampleFilePath = codeSampleFilePath;
+  } catch (error) {
     console.error("Error saving code:", error);
   }
+}
+
+async function handleRuleUpdate(code) {
+  try {
+    const ruleFilePath = await joinPath(state.rootDir, 'tmp', 'untitled_rule.yaml');
+    await writeFile(ruleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    state.selectedRuleFilePath = ruleFilePath;
+    await handleCodeUpdate(languageCode.value);
+  } catch (error) {
+    console.error("Error saving code:", error);
+  }
+}
+
+function handleInspectLocationChanged(debugCodeLocation) {
+  if (codeEditor.value) {
+    codeEditor.value.highlightDebugLocationCode(debugCodeLocation);
+  }
+}
+
+function handleCodeEditorLanguage(details) {
+  console.log("Language determined:", details);
+  state.languageDetails = details;
 }
 </script>
 
@@ -181,6 +147,7 @@ $secondary-color: #2ecc71;
   .code-area {
     display: flex;
     flex: 3;
+    max-height: 70%;
   }
 
   .column-view {
@@ -195,7 +162,7 @@ $secondary-color: #2ecc71;
     gap: 12px;
   }
 
-  .debug-section{
+  .debug-section {
     padding: 15px;
     overflow: auto;
     font-family: monospace;
