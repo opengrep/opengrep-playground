@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { spawn,exec } from 'child_process';
+import { spawn, exec } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
@@ -36,6 +36,15 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // TODO validate if this is necessary
+  // cleanup tmp files
+  // app.on('before-quit', () => {
+  //   console.log('Cleaning up temporary files...');
+  //   fs.rmSync(path.join(app.getAppPath(), 'tmp'), { recursive: true, force: true });
+  // });
+
+
+  // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
     return new Promise((resolve, reject) => {
       console.log("Running binary:", binaryPath, args);
@@ -81,10 +90,44 @@ app.whenReady().then(() => {
       return { error: error.message };
     }
   });
+
+  // Handle file writing from the main process
+  ipcMain.handle("write-file", async (event, filePath, content) => {
+    try {
+      await fs.promises.writeFile(filePath, content);
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  // Handle directory reading from the main process
+  ipcMain.handle("read-dir", async (event, path) => {
+    try {
+      const data = await fs.promises.readdir(path);
+      return data;
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  // Handle directory reading from the main process
+  ipcMain.handle("remove-dir", async (event, path) => {
+    try {
+      await fs.promises.rm(path, { recursive: true, force: true });
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  // Handle path joining from the main process
   ipcMain.handle("join-path", (event, ...segments) => {
     return path.join(segments.join('/'))
   });
-  ipcMain.handle("get-root-dir", () => { 
+
+  // Handle getting the root directory from the main process
+  ipcMain.handle("get-root-dir", () => {
     return app.getAppPath(); // This is the Electron main process root
   });
 

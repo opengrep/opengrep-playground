@@ -4,7 +4,7 @@
 </template>
 
 <script setup>
-import { shallowRef, watch } from 'vue';
+import { shallowRef, watch, defineExpose, onMounted, onBeforeUnmount } from 'vue';
 import { Range } from 'monaco-editor';
 
 const props = defineProps({
@@ -19,7 +19,7 @@ const props = defineProps({
     jsonresult: {
         type: Object,
         required: false
-    }
+    },
 });
 const emit = defineEmits(['update:code']);
 
@@ -45,13 +45,13 @@ const handleMount = editor => (editorRef.value = editor);
 
 watch(() => props.jsonresult, () => {
     determineHighlightCode();
-    determineCodeFlowInformation();
+    determineHighlightLinesFormTestResult();
 }, { deep: true });
 
 function determineHighlightCode() {
     const highlights = [];
 
-    (props.jsonresult?.runs || []).flatMap(run => run.results || [])
+    (props.jsonresult?.parsedResult?.runs || []).flatMap(run => run.results || [])
         .flatMap(result => result.locations || [])
         .forEach(location => {
             const region = location.physicalLocation.region;
@@ -64,15 +64,80 @@ function determineHighlightCode() {
     editorRef.value.deltaDecorations([], highlights);
 }
 
+function determineHighlightLinesFormTestResult() {
+    const decorations = [];
+    // Extract the matches from the JSON
+    Object.values(props.jsonresult?.testResults?.results || {}).forEach(testData => {
+        Object.values(testData.checks || {}).forEach(check => {
+            Object.entries(check.matches || {}).forEach(([, matchData]) => {
+                const { expected_lines = [], reported_lines = [] } = matchData;
+
+                // Convert arrays to sets for easier comparison
+                const expectedSet = new Set(expected_lines);
+                const reportedSet = new Set(reported_lines);
+
+                // Highlight expected lines (Green - should be present)
+                expected_lines.forEach(line => {
+                    decorations.push({
+                        range: new Range(line - 1, 1, line - 1, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: reportedSet.has(line) ? "full-line-highlight-added" : "full-line-highlight-removed",
+                            glyphMarginClassName: reportedSet.has(line) ? "diff-added-gutter" : "diff-removed-gutter"
+                        }
+                    });
+                });
+
+                // Highlight reported lines that are not in expected lines (Red - detected issues)
+                reported_lines.forEach(line => {
+                    if (!expectedSet.has(line)) {
+                        decorations.push({
+                            range: new Range(line - 1, 1, line - 1, 1),
+                            options: {
+                                isWholeLine: true,
+                                className: "full-line-highlight-removed",
+                                glyphMarginClassName: "diff-removed-gutter"
+                            }
+                        });
+                    }
+                });
+
+            });
+        });
+    });
+
+    // Check for comments indicating false positives (//ok or // ok)
+    const model = editorRef.value.getModel();
+    const linesCount = model.getLineCount();
+    for (let lineNumber = 1; lineNumber <= linesCount; lineNumber++) {
+        const lineContent = model.getLineContent(lineNumber);
+        if (lineContent.includes('//ok') || lineContent.includes('// ok')) {
+            decorations.push({
+                range: new Range(lineNumber, 1, lineNumber, 1),
+                options: {
+                    isWholeLine: true,
+                    className: "full-line-highlight-added",
+                    glyphMarginClassName: "diff-added-gutter"
+                }
+            });
+        }
+    }
+
+    // Apply decorations in Monaco Editor
+    editorRef.value.deltaDecorations([], decorations);
+}
+
 function determineCodeFlowInformation() {
-    const runs = props.jsonresult?.runs || [];
+    const runs = props.jsonresult?.parsedResult?.runs || [];
 
     editorRef.value.changeViewZones(accessor => {
+
         runs.flatMap(run => run.results || [])
             .flatMap(result => result.codeFlows || [])
             .flatMap(codeFlow => codeFlow.threadFlows || [])
             .flatMap(threadFlow => threadFlow.locations || [])
             .forEach((location, index) => {
+                console.log('ran')
                 const region = location?.location?.physicalLocation?.region;
                 if (!region) return; // Skip if region is invalid
 
@@ -107,7 +172,7 @@ function createAnnotationNode(label, message, codeSnippet) {
     // Create the message span
     const messageSpan = document.createElement("span");
     messageSpan.className = "annotation-message";
-    messageSpan.textContent = message; // Bold styling
+    messageSpan.textContent = message;
 
     // Create the code snippet container
     const codeBlock = document.createElement("span");
@@ -116,16 +181,39 @@ function createAnnotationNode(label, message, codeSnippet) {
 
     // Append elements to the container
     container.appendChild(labelSpan);
-    container.appendChild(messageSpan);// Line break for structure
+    container.appendChild(messageSpan);
     container.appendChild(codeBlock);
 
     return container;
 }
 
+// Function to handle keydown events
+function handleKeyDown(event) {
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const isSaveShortcut = (isMac && event.metaKey && event.key === 's') || (!isMac && event.ctrlKey && event.key === 's');
+
+    if (isSaveShortcut) {
+        event.preventDefault(); // Prevent the default save dialog
+        const latestCode = editorRef.value.getValue(); // Get the latest value of the editor code
+        emit('update:code', latestCode); // Emit the update:code event with the latest code
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
+
+// Expose the determineCodeFlowInformation function to the parent component
+defineExpose({ determineCodeFlowInformation });
+
 </script>
 <style>
 .code-highlight {
-    background-color: rgba(255, 0, 0, 0.5);
+    background-color: rgba(255, 255, 102, 0.5);
 }
 
 /* Style for view zones (annotation lines) */
@@ -149,5 +237,43 @@ function createAnnotationNode(label, message, codeSnippet) {
     text-align: center;
     color: #fff;
     background-color: #afafaf;
+}
+
+/* Green square in the gutter (Expected Lines - ruleid) */
+.diff-added-gutter {
+    background-color: #4caf50;
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    margin-left: 4px;
+    border-radius: 2px;
+}
+
+/* Red square in the gutter (Reported Issues - ok) */
+.diff-removed-gutter {
+    background-color: #e57373;
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    margin-left: 4px;
+    border-radius: 2px;
+}
+
+/* Full-width highlight for ruleid (Green) */
+.full-line-highlight-added {
+    background-color: rgba(198, 255, 198, 0.4) !important;
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+}
+
+/* Full-width highlight for ok (Red) - Adjusted */
+.full-line-highlight-removed {
+    background-color: rgba(255, 0, 0, 0.2) !important;
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100% !important;
 }
 </style>

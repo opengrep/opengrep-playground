@@ -1,9 +1,10 @@
 rules:
   - id: md5-used-as-password
-    message: It looks like MD5 is used as a password hash. MD5 is not considered a
+    message:
+      It looks like MD5 is used as a password hash. MD5 is not considered a
       secure password hash because it can be cracked by an attacker in a short
       amount of time. Use a suitable password hashing function such as bcrypt.
-      You can use the \`bcrypt\` node.js package.
+      You can use the `bcrypt` node.js package.
     metadata:
       category: security
       technology:
