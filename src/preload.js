@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readDir: (path) => ipcRenderer.invoke("read-dir", path),
   removeDir: (path) => ipcRenderer.invoke("remove-dir", path),
   joinPath: (...segments) => ipcRenderer.invoke("join-path", ...segments),
+  getSafeDir: () => ipcRenderer.invoke("get-safe-dir"),
   getRootDir: () => ipcRenderer.invoke("get-root-dir"),
 });
 

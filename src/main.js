@@ -52,10 +52,6 @@ app.whenReady().then(() => {
     }
   }
 
-  app.on('ready', () => {
-    clearTempFolder(); // Clear temp files on app ready
-  });
-
   app.on('will-quit', () => {
     clearTempFolder(); // Clear temp files before quitting
   });
@@ -106,6 +102,11 @@ app.whenReady().then(() => {
     });
   });
 
+
+const isDev = !app.isPackaged;
+const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : app.getPath('userData');
+
+
   // Handle file reading from the main process
   ipcMain.handle("read-file", async (event, filePath) => {
     try {
@@ -148,12 +149,17 @@ app.whenReady().then(() => {
 
   // Handle path joining from the main process
   ipcMain.handle("join-path", (event, ...segments) => {
-    return path.join(segments.join('/'))
+    return path.join(segments.join('/'));
+  });
+
+  // Handle getting the root directory from the main process
+  ipcMain.handle("get-safe-dir", () => {
+    return path.join(basePath); // This is the Electron main process root
   });
 
   // Handle getting the root directory from the main process
   ipcMain.handle("get-root-dir", () => {
-    return app.getAppPath(); // This is the Electron main process root
+    return path.join(app.getAppPath()); // This is the Electron main process root
   });
 
   createWindow();

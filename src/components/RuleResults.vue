@@ -80,6 +80,7 @@ const props = defineProps({
 
 const emit = defineEmits(['binaryEnded', 'showDataFlows']);
 
+const getSafeDir = inject('$getSafeDir');
 const getRootDir = inject('$getRootDir');
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
@@ -91,7 +92,7 @@ const state = reactive({
     testResults: [],
     rulesPath: '',
     codeSamplePath: '',
-    rootDir: ''
+    safeDir: ''
 });
 
 // Compute total & passed tests dynamically
@@ -110,7 +111,7 @@ const passedTests = computed(() => {
 watch(
     () => [props.language, props.ruleFile, props.codeSampleFile],
     async (newValues) => {       
-            state.rootDir = await getRootDir();
+            state.safeDir = await getSafeDir();
             state.rulesPath = props.ruleFile;
             state.codeSamplePath = props.codeSampleFile;
     },
@@ -122,7 +123,7 @@ async function handleRunBinary() {
     try {
           state.isLoading = true;
 
-        const binaryPath = await joinPath(state.rootDir, 'opengrep_osx_arm64');
+        const binaryPath = await joinPath(await getRootDir(), 'opengrep_osx_arm64');
 
         const [response, testResponse] = await Promise.all([
             runBinary(binaryPath, ["scan", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--sarif", "--dataflow-traces", "--matching-explanations", "--json-output=tmp/findings.json"]),

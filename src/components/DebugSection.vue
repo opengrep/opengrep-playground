@@ -9,7 +9,7 @@
 import { ref, inject, defineExpose } from "vue";
 import TreeView from "./TreeView.vue";
 
-const getRootDir = inject('$getRootDir');
+const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const readFile = inject('$readFile');
 
@@ -17,8 +17,8 @@ const parsedData = ref(null);
 const emit = defineEmits(['inspectLocationChanged']);
 
 async function generateDebuggingInfo() {
-  const rootDir = await getRootDir();
-  const findingsPath = await joinPath(rootDir, "tmp", "findings.json");
+  const safeDir = await getSafeDir();
+  const findingsPath = await joinPath(safeDir, "findings.json");
   const findingsJson = await readFile(findingsPath);
   parsedData.value = JSON.parse(findingsJson);
 

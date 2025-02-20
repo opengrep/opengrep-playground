@@ -39,6 +39,7 @@ app.use(VueMonacoEditorPlugin, {
 });
 
 app.provide('$electronAPI', window.electronAPI);
+app.provide('$getSafeDir', window.electronAPI.getSafeDir);
 app.provide('$getRootDir', window.electronAPI.getRootDir);
 app.provide('$joinPath', window.electronAPI.joinPath);
 app.provide('$readFile', window.electronAPI.readFile);

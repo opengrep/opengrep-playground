@@ -52,13 +52,13 @@ import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
 
-const getRootDir = inject('$getRootDir');
+const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
 
 const state = reactive({
   jsonResult: null,
-  rootDir: '',
+  safeDir: '',
   languageDetails: null,
   selectedRuleFilePath: null,
   selectedCodeSampleFilePath: null,
@@ -70,7 +70,7 @@ const debugSection = ref(null);
 const languageCode = ref('');
 
 onMounted(async () => {
-  state.rootDir = await getRootDir();
+  state.safeDir = await getSafeDir();
 });
 
 async function handleBinaryEnded(result) {
@@ -87,7 +87,7 @@ function handleShowDataFlows() {
 async function handleCodeUpdate(code) {
   try {
     languageCode.value = code;
-    const codeSampleFilePath = await joinPath(state.rootDir, 'tmp', `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
+    const codeSampleFilePath = await joinPath(state.safeDir, `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
     await writeFile(codeSampleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
     state.selectedCodeSampleFilePath = codeSampleFilePath;
   } catch (error) {
@@ -97,7 +97,7 @@ async function handleCodeUpdate(code) {
 
 async function handleRuleUpdate(code) {
   try {
-    const ruleFilePath = await joinPath(state.rootDir, 'tmp', 'untitled_rule.yaml');
+    const ruleFilePath = await joinPath(state.safeDir, 'untitled_rule.yaml');
     await writeFile(ruleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
     state.selectedRuleFilePath = ruleFilePath;
     await handleCodeUpdate(languageCode.value);
