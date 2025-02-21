@@ -18,7 +18,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build for Windows
         run: npm run make-win
@@ -41,7 +41,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build for macOS
         run: npm run make-mac
@@ -64,7 +64,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Linux Dependencies
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm libarchive-tools
