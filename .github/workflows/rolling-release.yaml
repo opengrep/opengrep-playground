@@ -1,12 +1,9 @@
-name: Build Electron App for All Platforms
+name: Rolling Release Electron App
 
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - main # Triggers on every push to `main`
 
 jobs:
   build-windows:
@@ -24,7 +21,7 @@ jobs:
         run: npm install
 
       - name: Build for Windows
-        run: npm run make-win
+        run: npm run make -- --platform=win32
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -80,3 +77,43 @@ jobs:
         with:
           name: linux-build
           path: out/make/
+
+  release:
+    needs: [build-windows, build-macos, build-linux] # Wait for all builds to complete
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows Build
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: windows
+
+      - name: Download macOS Build
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: macos
+
+      - name: Download Linux Build
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: linux
+
+      - name: Create or Update Rolling Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: "Rolling Release"
+          body: "🚀 This is the latest rolling release built from `main`."
+          draft: false
+          prerelease: false
+          files: |
+            windows/*
+            macos/*
+            linux/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
