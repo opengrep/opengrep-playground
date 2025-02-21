@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { spawn,exec } from 'child_process';
+import { spawn, exec } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+import os from 'os';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -36,6 +37,46 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+
+const isDev = !app.isPackaged;
+const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
+
+  // TODO validate if this is necessary
+  // cleanup tmp filee
+
+  function clearTempFolder() {
+    const tempPath = basePath; // Change to match your temp folder
+    if (fs.existsSync(tempPath)) {
+      fs.promises.readdir(tempPath).then(files => {
+        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
+      }).then(() => {
+        console.log(`Cleared tmp folder: ${tempPath}`);
+      }).catch(err => {
+        console.error(`Error clearing tmp folder: ${err.message}`);
+      });
+    } else {
+      console.log(`Temp folder does not exist: ${tempPath}`);
+    }
+  }
+
+  app.on('ready', () => {
+    clearTempFolder(); // Clear temp files before quitting
+  });
+  
+  app.on('will-quit', () => {
+    clearTempFolder(); // Clear temp files before quitting
+  });
+
+  app.on('before-quit', () => {
+    clearTempFolder(); // Ensure cleanup before exiting
+  });
+
+  app.on('quit', () => {
+    clearTempFolder(); // Extra safety cleanup
+  });
+
+
+  // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
     return new Promise((resolve, reject) => {
       console.log("Running binary:", binaryPath, args);
@@ -72,6 +113,7 @@ app.whenReady().then(() => {
     });
   });
 
+
   // Handle file reading from the main process
   ipcMain.handle("read-file", async (event, filePath) => {
     try {
@@ -81,11 +123,57 @@ app.whenReady().then(() => {
       return { error: error.message };
     }
   });
-  ipcMain.handle("join-path", (event, ...segments) => {
-    return path.join(segments.join('/'))
+
+  // Handle file writing from the main process
+  ipcMain.handle("write-file", async (event, filePath, content, options) => {
+    try {
+      const t= await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+       console.log('t',t);
+      await fs.promises.writeFile(filePath, content, options);
+      console.log(`File written successfully: ${filePath}`);
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
   });
-  ipcMain.handle("get-root-dir", () => { 
-    return app.getAppPath(); // This is the Electron main process root
+
+  // Handle directory reading from the main process
+  ipcMain.handle("read-dir", async (event, path) => {
+    try {
+      const data = await fs.promises.readdir(path);
+      return data;
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  // Handle directory reading from the main process
+  ipcMain.handle("remove-dir", async (event, path) => {
+    try {
+      await fs.promises.rm(path, { recursive: true, force: true });
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  // Handle path joining from the main process
+  ipcMain.handle("join-path", (event, ...segments) => {
+    return path.join(segments.join('/'));
+  });
+
+  // Handle getting the root directory from the main process
+  ipcMain.handle("get-safe-dir", () => {
+    return path.join(basePath);
+  });
+
+  // Handle getting the root directory from the main process
+  ipcMain.handle("get-root-dir", () => {
+    return app.isPackaged ? process.resourcesPath : app.getAppPath(); 
+  });
+  
+  ipcMain.handle("get-platform", () => {
+    return os.platform(); 
   });
 
   createWindow();

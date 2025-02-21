@@ -32,16 +32,21 @@ import { install as VueMonacoEditorPlugin } from '@guolao/vue-monaco-editor';
 
 const app = createApp(App);
 app.use(VueMonacoEditorPlugin, {
-    paths: {
-      // The recommended CDN config
-      vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs'
-    },
-  });
+  paths: {
+    // The recommended CDN config
+    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs'
+  },
+});
 
 app.provide('$electronAPI', window.electronAPI);
+app.provide('$getPlatform', window.electronAPI.getPlatform);
+app.provide('$getSafeDir', window.electronAPI.getSafeDir);
 app.provide('$getRootDir', window.electronAPI.getRootDir);
 app.provide('$joinPath', window.electronAPI.joinPath);
 app.provide('$readFile', window.electronAPI.readFile);
+app.provide('$writeFile', window.electronAPI.writeFile);
+app.provide('$readDir', window.electronAPI.readDir);
+app.provide('$removeDir', window.electronAPI.removeDir);
 app.provide('$runBinary', window.electronAPI.runBinary);
 
 app.mount('#app');
