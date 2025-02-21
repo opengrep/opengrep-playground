@@ -1,8 +1,8 @@
 {
-  "name": "playground",
-  "productName": "playground",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "name": "opengrep-playground",
+  "productName": "opengrep-playground",
+  "version": "0.0.0",
+  "description": "Opengrep Playgorund Editor",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -20,6 +20,7 @@
     "@electron-forge/maker-squirrel": "^7.6.1",
     "@electron-forge/maker-zip": "^7.6.1",
     "@electron-forge/maker-wix": "^7.6.1",
+    "@electron-forge/maker-dmg": "^7.6.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.6.1",
     "@electron-forge/plugin-fuses": "^7.6.1",
     "@electron-forge/plugin-vite": "^7.6.1",
@@ -30,10 +31,6 @@
     "vite": "^5.4.14"
   },
   "keywords": [],
-  "author": {
-    "name": "matthiasgekiere",
-    "email": "matthias.gekiere@codekt.be"
-  },
   "license": "MIT",
   "dependencies": {
     "@guolao/vue-monaco-editor": "^1.5.4",

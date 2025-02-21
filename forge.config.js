@@ -1,69 +1,90 @@
+const path = require('path');
+const fs = require('fs');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
+const isWindows = process.platform === 'win32';
+const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
+
 
 module.exports = {
   packagerConfig: {
     asar: {
       unpack: '**/bin/**', // Ensure binaries are outside ASAR
     },
-    extraResource: ['bin'], // Ensure 'bin' folder is included in the package
-    icon: {
-      win32: 'assets/app-icon.ico', // Windows icon
-      darwin: 'assets/app-icon.icns', // macOS icon
-      linux: 'assets/app-icon.png', // Linux icon
+    extraResource: ['bin'],
+    win32metadata: {
+      CompanyName: 'Opengrep',
+      FileDescription: 'Opengrep Playgorund Editor',
+      OriginalFilename: 'opengrep-playground.exe',
+      ProductName: 'Opengrep Playground',
     },
   },
   rebuildConfig: {},
   makers: [
     // ✅ Linux DEB Package (For Ubuntu/Debian)
-    {
-      name: '@electron-forge/maker-deb',
-      config: {
-        options: {
-          maintainer: 'Your Name',
-          homepage: 'https://yourwebsite.com',
-          categories: ['Utility'],
-        },
-      },
-    },
-    // ✅ Linux RPM Package (For Fedora/RHEL)
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {
-        options: {
-          maintainer: 'Your Name',
-          homepage: 'https://yourwebsite.com',
-          categories: ['Utility'],
-        },
-      },
-    },
+    ...(isLinux
+      ? [
+          {
+            name: '@electron-forge/maker-deb',
+            config: {
+              options: {
+                maintainer: 'Opengrep',
+                homepage: 'https://yourwebsite.com',
+                categories: ['Utility'],
+              },
+            },
+          },
+          {
+            name: '@electron-forge/maker-rpm',
+            config: {
+              options: {
+                maintainer: 'Opengrep',
+                homepage: 'https://yourwebsite.com',
+                categories: ['Utility'],
+              },
+            },
+          },
+        ]
+      : []),
     // ✅ Windows Installer (Squirrel)
-    {
-      name: '@electron-forge/maker-squirrel',
-      config: {
-        name: 'your-app-name',
-        setupIcon: 'assets/app-icon.ico',
-        loadingGif: 'assets/loading.gif',
-        authors: 'Your Company',
-        exe: 'your-app-name.exe',
-      },
-    },
-    // ✅ Windows ZIP Package (Portable)
+    ...(isWindows
+      ? [
+          {
+            name: '@electron-forge/maker-squirrel',
+            config: {
+              name: 'opengrep-playground', // Match package.json "name"
+              setupExe: 'opengrep-playground-setup.exe',
+              authors: 'Opengrep',
+              exe: 'opengrep-playground.exe',
+            },
+          },
+          {
+            name: '@electron-forge/maker-wix',
+            config: {
+              language: 1033, // English
+              manufacturer: 'Opengrep',
+              upgradeCode: '', // Use a valid UUID todo
+            },
+          },
+        ]
+      : []),
+    // ✅ macOS - DMG
+    ...(isMac
+      ? [
+          {
+            name: '@electron-forge/maker-dmg',
+            config: {
+              format: 'ULFO',
+            },
+          },
+        ]
+      : []),
+    // ✅ macOS & Windows - ZIP (Portable)
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['win32', 'darwin'],
-    },
-    // ✅ Windows MSI Installer (WiX)
-    {
-      name: '@electron-forge/maker-wix',
-      config: {
-        language: 1033, // English
-        manufacturer: 'Your Company',
-        upgradeCode: '4e29d7a3-62b5-4e2f-91e3-2c4370b53a2e', // Replace with a unique UUID
-        icon: 'assets/app-icon.ico',
-      },
+      platforms: ['win32', 'darwin', 'linux'],
     },
   ],
   plugins: [
