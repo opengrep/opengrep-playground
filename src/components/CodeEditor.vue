@@ -1,6 +1,6 @@
 <template>
-    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" defaultLanguage="javascript"
-        @mount="handleMount" @change="handleCodeChange" />
+    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" defaultLanguage="javascript" @mount="handleMount"
+        @change="handleCodeChange" />
 </template>
 
 <script setup>
@@ -35,13 +35,17 @@ const MONACO_EDITOR_OPTIONS = {
     semanticHighlighting: { enabled: 'configuredByTheme' },
     readOnly: false,
     wordWrap: "on",
-    minimap: { enabled: true },
+    minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: "on",
     scrollBeyondLastLine: false,
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
+    scrollbar: {
+        vertical: 'hidden',
+        horizontal: 'hidden'
+    }
 };
 
 const editorRef = shallowRef();
@@ -56,8 +60,9 @@ watch(() => props.jsonresult, () => {
     determineHighlightLinesFromTestResult();
 }, { deep: true });
 
-watch(() => props.language, () => {
-    editorRef.value?.updateOptions({ language: props.language });
+watch(() => props.language, (newLanguage) => {
+    const languageToUse = newLanguage === 'generic' ? 'javascript' : newLanguage;
+    editorRef.value?.updateOptions({ language: languageToUse });
 }, { immediate: true });
 
 function determineHighlightCode() {
@@ -76,14 +81,14 @@ function determineHighlightCode() {
             });
         });
 
-        existingHiglightCodeDecorations.value = editorRef.value.deltaDecorations(existingHiglightCodeDecorations.value, newDecorations);
+    existingHiglightCodeDecorations.value = editorRef.value.deltaDecorations(existingHiglightCodeDecorations.value, newDecorations);
 }
 
 function determineHighlightLinesFromTestResult() {
-     // Clear existing decorations
-     existingHighlightLinesFromTestResult.value = editorRef.value.deltaDecorations(existingHighlightLinesFromTestResult.value, []);
+    // Clear existing decorations
+    existingHighlightLinesFromTestResult.value = editorRef.value.deltaDecorations(existingHighlightLinesFromTestResult.value, []);
 
-     const newDecorations = [];
+    const newDecorations = [];
 
     // Extract the matches from the JSON
     Object.values(props.jsonresult?.testResults?.results || {}).forEach(testData => {
@@ -219,10 +224,8 @@ function handleKeyDown(event) {
     }
 }
 
-function handleCodeChange (code) {
-    setTimeout(() => {
-        emit('update:code', code);
-    }, 1000);
+function handleCodeChange(code) {
+    emit('update:code', code);
 };
 
 onMounted(() => {

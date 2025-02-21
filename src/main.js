@@ -127,10 +127,19 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
   // Handle file writing from the main process
   ipcMain.handle("write-file", async (event, filePath, content, options) => {
     try {
-      const t= await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-       console.log('t',t);
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
       await fs.promises.writeFile(filePath, content, options);
       console.log(`File written successfully: ${filePath}`);
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle("remove-file", async (event, filePath) => {
+    try {
+      await fs.promises.unlink(filePath);
+      console.log(`File removed successfully: ${filePath}`);
       return { success: true };
     } catch (error) {
       return { error: error.message };

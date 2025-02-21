@@ -29,9 +29,9 @@
         </div>
 
         <!-- Results Viewer -->
-        <div class="column-view">
+        <div class="column-view" style="flex: 1;">
           <h3>Results</h3>
-          <RuleResults :style="{flex: 1, display: 'grid', gap: '12px'}" :language="language"
+          <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" :language="language"
             :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath" @binaryEnded="handleBinaryEnded"
             @showDataFlows="handleShowDataFlows" />
         </div>
@@ -55,6 +55,7 @@ import RuleEditor from './components/RuleEditor.vue';
 const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
+const removeFile = inject('$removeFile');
 
 const state = reactive({
   jsonResult: null,
@@ -88,7 +89,14 @@ async function handleCodeUpdate(code) {
   try {
     languageCode.value = code;
     const codeSampleFilePath = await joinPath(state.safeDir, `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
-    await writeFile(codeSampleFilePath, code, { flag: 'w'}); // 'w' flag to create or overwrite the file, createParent to create parent folder if it doesn't exist
+    
+    // Delete the txt file if the extension is defined and not 'txt'
+    if (state.languageDetails?.extension && state.languageDetails.extension !== 'txt') {
+      const txtFilePath = await joinPath(state.safeDir, 'untitled_code.txt');
+      await removeFile(txtFilePath); // Overwrite with empty content to effectively delete
+    }
+
+    await writeFile(codeSampleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
     state.selectedCodeSampleFilePath = codeSampleFilePath;
   } catch (error) {
     console.error("Error saving code:", error);
@@ -154,7 +162,7 @@ $secondary-color: #2ecc71;
     width: 300px;
     padding: 15px;
     border-right: 1px solid $border-color;
-    flex: 1;
+    flex: 2;
     overflow: auto;
     font-family: monospace;
     display: flex;

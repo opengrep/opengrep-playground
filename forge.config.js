@@ -20,6 +20,13 @@ module.exports = {
       OriginalFilename: 'opengrep-playground.exe',
       ProductName: 'Opengrep Playground',
     },
+    osxSign: {
+      identity: "Developer ID Application: Your Name (XXXXXXXXXX)", // Replace with your Apple Developer ID
+      hardenedRuntime: true,
+      entitlements: "entitlements.plist",
+      'entitlements-inherit': "entitlements.plist",
+      'signature-flags': "library"
+    },
   },
   rebuildConfig: {},
   makers: [
@@ -77,6 +84,12 @@ module.exports = {
             name: '@electron-forge/maker-dmg',
             config: {
               format: 'ULFO',
+              overwrite: true,
+              debug: true,
+              contents: [
+                { x: 400, y: 200, type: "file", path: "${appOutDir}/${productName}.app" },
+                { x: 100, y: 200, type: "link", path: "/Applications" }
+              ]
             },
           },
         ]

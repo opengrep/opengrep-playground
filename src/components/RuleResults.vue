@@ -1,5 +1,5 @@
 <template>
-    <button @click="handleRunBinary">Run Binary</button>
+    <button @click="handleRunBinary" style="align-self: flex-end;">Run Binary</button>
 
     <div v-if="state.isLoading" class="loading-container">
         <div class="loading-circle"></div>
@@ -7,14 +7,19 @@
 
     <div class="results-container" v-else>
         <div v-if="state.parsedResult">
-            <div v-for="run in state.parsedResult.runs" :key="run.tool.driver.name" class="run-card">
-                <h3>{{ run.tool.driver.name }}</h3>
-                <div v-for="result in run.results" :key="result.ruleId" class="result-card">
-                    <h4>Rule: {{ result.ruleId }}</h4>
-                    <p>{{ result.message.text }}</p>
-                    <div v-for="location in result.locations" :key="location.physicalLocation.artifactLocation.uri"
-                        class="location-card">
-                        <p><strong>Snippet:</strong><br><br> {{ location.physicalLocation.region.snippet.text }}</p>
+            <div v-for="(run, index) in state.parsedResult.runs" :key="run.tool.driver.name" class="run-card">
+                <h3 @click="toggleCollapse(index)" style="cursor: pointer;">
+                    {{ run.tool.driver.name }}
+                    <span>{{ collapsedRuns[index] ? '▼' : '▲' }}</span>
+                </h3>
+                <div v-show="!collapsedRuns[index]">
+                    <div v-for="result in run.results" :key="result.ruleId" class="result-card">
+                        <h4>Rule: {{ result.ruleId }}</h4>
+                        <p>{{ result.message.text }}</p>
+                        <div v-for="location in result.locations" :key="location.physicalLocation.artifactLocation.uri"
+                            class="location-card">
+                            <p><strong>Snippet:</strong><br><br> {{ location.physicalLocation.region.snippet.text }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -96,6 +101,8 @@ const state = reactive({
     safeDir: ''
 });
 
+const collapsedRuns = reactive({});
+
 // Compute total & passed tests dynamically
 const totalTests = computed(() => {
     return Object.values(state.testResults.results || {})
@@ -149,12 +156,19 @@ async function handleRunBinary() {
 
         const [response, testResponse] = await Promise.all([
             runBinary(binaryPath, ["scan", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${state.safeDir}/findings.json"`]),
-            runBinary(binaryPath, ["scan", "--test", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--dataflow-traces --json"])
+            runBinary(binaryPath, ["scan", "--test", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--json"])
         ]);
 
         state.result = response.output;
+        console.log("scan output:", response.output);
+        console.log("test output:", testResponse.output);
         state.parsedResult = JSON.parse(response.output);
         state.testResults = JSON.parse(testResponse.output);
+
+        // Initialize collapsed state for each run
+        state.parsedResult.runs.forEach((run, index) => {
+            collapsedRuns[index] = false;
+        });
 
         emit('binaryEnded', {
             parsedResult: state.parsedResult,
@@ -165,6 +179,10 @@ async function handleRunBinary() {
     } finally {
         state.isLoading = false;
     }
+}
+
+function toggleCollapse(index) {
+    collapsedRuns[index] = !collapsedRuns[index];
 }
 
 function getLineClass(line, reportedLines) {
@@ -304,6 +322,12 @@ button:hover {
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+.location-card {
+    p{
+        overflow-wrap: break-word;
     }
 }
 </style>

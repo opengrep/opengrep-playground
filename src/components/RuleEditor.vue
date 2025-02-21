@@ -61,10 +61,8 @@ function handleKeyDown(event) {
 }
 
 function handleCodeChange(code) {
-    setTimeout(() => {
-        emit('languageDetermined', getLanguageDetails(code));
-        emit('update:code', code);
-    }, 1000);
+    emit('languageDetermined', getLanguageDetails(code));
+    emit('update:code', code);
 };
 
 function getLanguageDetails(yamlContent) {
