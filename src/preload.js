@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  getPlatform: () => ipcRenderer.invoke("get-platform"),
   runBinary: (binaryPath, args) =>
     ipcRenderer.invoke("run-binary", binaryPath, args),
   readFile: (filePath) => ipcRenderer.invoke("read-file", filePath),

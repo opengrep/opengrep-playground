@@ -84,6 +84,7 @@ const getSafeDir = inject('$getSafeDir');
 const getRootDir = inject('$getRootDir');
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
+const getPlatform = inject('$getPlatform');
 
 const state = reactive({
     result: '',
@@ -110,10 +111,10 @@ const passedTests = computed(() => {
 
 watch(
     () => [props.language, props.ruleFile, props.codeSampleFile],
-    async (newValues) => {       
-            state.safeDir = await getSafeDir();
-            state.rulesPath = props.ruleFile;
-            state.codeSamplePath = props.codeSampleFile;
+    async (newValues) => {
+        state.safeDir = await getSafeDir();
+        state.rulesPath = props.ruleFile;
+        state.codeSamplePath = props.codeSampleFile;
     },
     { immediate: true }
 );
@@ -121,13 +122,34 @@ watch(
 async function handleRunBinary() {
 
     try {
-          state.isLoading = true;
+        state.isLoading = true;
 
-        const binaryPath = await joinPath(await getRootDir(), 'opengrep_osx_arm64');
+        // Get the correct resources path
+        const rootDir = await getRootDir();
+        
+        console.log("platform:", await getPlatform());
+        const platform = await getPlatform();
+
+        // Select correct binary based on OS
+        let binaryFileName;
+        if (platform === 'win32') {
+            binaryFileName = 'opengrep_windows.exe';
+        } else if (platform === 'darwin') {
+            binaryFileName = 'opengrep_osx_arm64';
+        } else {
+            binaryFileName = 'opengrep_linux';
+        }
+
+        // Construct the full binary path
+        const binaryPath = await joinPath(rootDir, 'bin', binaryFileName);
+
+        console.log("Running binary at path:", binaryPath);
+        console.log("Rules path:", state.rulesPath);
+        console.log("Code sample path:", state.codeSamplePath);
 
         const [response, testResponse] = await Promise.all([
-            runBinary(binaryPath, ["scan", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--sarif", "--dataflow-traces", "--matching-explanations", "--json-output=tmp/findings.json"]),
-            runBinary(binaryPath, ["scan", "--test", `-f ${state.rulesPath} ${state.codeSamplePath}`, "--dataflow-traces --json"])
+            runBinary(binaryPath, ["scan", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${state.safeDir}/findings.json"`]),
+            runBinary(binaryPath, ["scan", "--test", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--dataflow-traces --json"])
         ]);
 
         state.result = response.output;
@@ -170,7 +192,8 @@ h3 {
 }
 
 /* Test Result Card */
-.test-result-card, .result-card {
+.test-result-card,
+.result-card {
     border-radius: 6px;
     padding: 15px;
     margin-top: 10px;

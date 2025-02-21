@@ -88,7 +88,7 @@ async function handleCodeUpdate(code) {
   try {
     languageCode.value = code;
     const codeSampleFilePath = await joinPath(state.safeDir, `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
-    await writeFile(codeSampleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    await writeFile(codeSampleFilePath, code, { flag: 'w'}); // 'w' flag to create or overwrite the file, createParent to create parent folder if it doesn't exist
     state.selectedCodeSampleFilePath = codeSampleFilePath;
   } catch (error) {
     console.error("Error saving code:", error);

@@ -3,6 +3,7 @@ import { spawn, exec } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+import os from 'os';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -36,11 +37,15 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+
+const isDev = !app.isPackaged;
+const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
+
   // TODO validate if this is necessary
   // cleanup tmp filee
 
   function clearTempFolder() {
-    const tempPath = path.join(app.getAppPath(), 'tmp'); // Change to match your temp folder
+    const tempPath = basePath; // Change to match your temp folder
     if (fs.existsSync(tempPath)) {
       fs.promises.readdir(tempPath).then(files => {
         return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
@@ -49,9 +54,15 @@ app.whenReady().then(() => {
       }).catch(err => {
         console.error(`Error clearing tmp folder: ${err.message}`);
       });
+    } else {
+      console.log(`Temp folder does not exist: ${tempPath}`);
     }
   }
 
+  app.on('ready', () => {
+    clearTempFolder(); // Clear temp files before quitting
+  });
+  
   app.on('will-quit', () => {
     clearTempFolder(); // Clear temp files before quitting
   });
@@ -103,10 +114,6 @@ app.whenReady().then(() => {
   });
 
 
-const isDev = !app.isPackaged;
-const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : app.getPath('userData');
-
-
   // Handle file reading from the main process
   ipcMain.handle("read-file", async (event, filePath) => {
     try {
@@ -120,7 +127,10 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : app.getPath('userD
   // Handle file writing from the main process
   ipcMain.handle("write-file", async (event, filePath, content, options) => {
     try {
+      const t= await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+       console.log('t',t);
       await fs.promises.writeFile(filePath, content, options);
+      console.log(`File written successfully: ${filePath}`);
       return { success: true };
     } catch (error) {
       return { error: error.message };
@@ -154,12 +164,16 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : app.getPath('userD
 
   // Handle getting the root directory from the main process
   ipcMain.handle("get-safe-dir", () => {
-    return path.join(basePath); // This is the Electron main process root
+    return path.join(basePath);
   });
 
   // Handle getting the root directory from the main process
   ipcMain.handle("get-root-dir", () => {
-    return path.join(app.getAppPath()); // This is the Electron main process root
+    return app.isPackaged ? process.resourcesPath : app.getAppPath(); 
+  });
+  
+  ipcMain.handle("get-platform", () => {
+    return os.platform(); 
   });
 
   createWindow();
