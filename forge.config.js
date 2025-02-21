@@ -83,13 +83,7 @@ module.exports = {
           {
             name: '@electron-forge/maker-dmg',
             config: {
-              format: 'ULFO',
-              overwrite: true,
-              debug: true,
-              contents: [
-                { x: 400, y: 200, type: "file", path: "${appOutDir}/${productName}.app" },
-                { x: 100, y: 200, type: "link", path: "/Applications" }
-              ]
+              format: 'ULFO'
             },
           },
         ]
