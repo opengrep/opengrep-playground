@@ -33,7 +33,7 @@
           <h3>Results</h3>
           <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" :language="language"
             :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath" @binaryEnded="handleBinaryEnded"
-            @showDataFlows="handleShowDataFlows" />
+            @showDataFlows="handleShowDataFlows" :disableRun="isRuleEditorEmpty" />
         </div>
       </div>
       <!-- Debug Rule Area -->
@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, inject, ref } from 'vue';
+import { reactive, onMounted, inject, ref, computed } from 'vue';
 import CodeEditor from './components/CodeEditor.vue';
 import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
@@ -63,12 +63,15 @@ const state = reactive({
   languageDetails: null,
   selectedRuleFilePath: null,
   selectedCodeSampleFilePath: null,
+  ruleEditorCode: '',
 });
 
 // TODO make language coming from user input
 const codeEditor = ref(null);
 const debugSection = ref(null);
 const languageCode = ref('');
+
+const isRuleEditorEmpty = computed(() => !state.ruleEditorCode);
 
 onMounted(async () => {
   state.safeDir = await getSafeDir();
@@ -79,9 +82,9 @@ async function handleBinaryEnded(result) {
   await debugSection.value.generateDebuggingInfo();
 };
 
-function handleShowDataFlows() {
+function handleShowDataFlows(ruleResult) {
   if (codeEditor.value) {
-    codeEditor.value.determineCodeFlowInformation();
+    codeEditor.value.determineCodeFlowInformation(ruleResult);
   }
 };
 
@@ -105,6 +108,7 @@ async function handleCodeUpdate(code) {
 
 async function handleRuleUpdate(code) {
   try {
+    state.ruleEditorCode = code;
     const ruleFilePath = await joinPath(state.safeDir, 'untitled_rule.yaml');
     await writeFile(ruleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
     state.selectedRuleFilePath = ruleFilePath;

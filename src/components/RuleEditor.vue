@@ -18,13 +18,17 @@ const MONACO_EDITOR_OPTIONS = {
     semanticHighlighting: { enabled: 'configuredByTheme' },
     readOnly: false,
     wordWrap: "on",
-    minimap: { enabled: true },
+    minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: "on",
     scrollBeyondLastLine: false,
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
+    scrollbar: {
+        vertical: 'hidden',
+        horizontal: 'hidden'
+    }
 };
 const languageMappings = {
     js: { ext: "js", monaco: "javascript" },

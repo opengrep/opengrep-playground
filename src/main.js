@@ -30,7 +30,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  if (!app.isPackaged) { mainWindow.webContents.openDevTools(); }
 };
 
 // This method will be called when Electron has finished
@@ -38,8 +38,8 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
 
-const isDev = !app.isPackaged;
-const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
+  const isDev = !app.isPackaged;
+  const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
 
   // TODO validate if this is necessary
   // cleanup tmp filee
@@ -62,7 +62,7 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
   app.on('ready', () => {
     clearTempFolder(); // Clear temp files before quitting
   });
-  
+
   app.on('will-quit', () => {
     clearTempFolder(); // Clear temp files before quitting
   });
@@ -178,11 +178,11 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
 
   // Handle getting the root directory from the main process
   ipcMain.handle("get-root-dir", () => {
-    return app.isPackaged ? process.resourcesPath : app.getAppPath(); 
+    return app.isPackaged ? process.resourcesPath : app.getAppPath();
   });
-  
+
   ipcMain.handle("get-platform", () => {
-    return os.platform(); 
+    return os.platform();
   });
 
   createWindow();

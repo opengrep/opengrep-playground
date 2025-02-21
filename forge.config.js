@@ -7,7 +7,6 @@ const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
 
-
 module.exports = {
   packagerConfig: {
     asar: {
@@ -16,21 +15,14 @@ module.exports = {
     extraResource: ['bin'],
     win32metadata: {
       CompanyName: 'Opengrep',
-      FileDescription: 'Opengrep Playgorund Editor',
+      FileDescription: 'Opengrep Playground Editor',
       OriginalFilename: 'opengrep-playground.exe',
       ProductName: 'Opengrep Playground',
-    },
-    osxSign: {
-      identity: "Developer ID Application: Your Name (XXXXXXXXXX)", // Replace with your Apple Developer ID
-      hardenedRuntime: true,
-      entitlements: "entitlements.plist",
-      'entitlements-inherit': "entitlements.plist",
-      'signature-flags': "library"
     },
   },
   rebuildConfig: {},
   makers: [
-    // ✅ Linux DEB Package (For Ubuntu/Debian)
+    // ✅ Linux DEB and RPM Packages
     ...(isLinux
       ? [
           {
@@ -55,7 +47,7 @@ module.exports = {
           },
         ]
       : []),
-    // ✅ Windows Installer (Squirrel)
+    // ✅ Windows Installers
     ...(isWindows
       ? [
           {
@@ -72,7 +64,7 @@ module.exports = {
             config: {
               language: 1033, // English
               manufacturer: 'Opengrep',
-              upgradeCode: '', // Use a valid UUID todo
+              upgradeCode: '', // Use a valid UUID
             },
           },
         ]
@@ -88,7 +80,7 @@ module.exports = {
           },
         ]
       : []),
-    // ✅ macOS & Windows - ZIP (Portable)
+    // ✅ ZIP for all platforms
     {
       name: '@electron-forge/maker-zip',
       platforms: ['win32', 'darwin', 'linux'],

@@ -1,11 +1,11 @@
 <template>
-    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" defaultLanguage="javascript" @mount="handleMount"
+    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" defaultLanguage="plaintext" @mount="handleMount"
         @change="handleCodeChange" />
 </template>
 
 <script setup>
 import { shallowRef, watch, defineExpose, onMounted, onBeforeUnmount, ref } from 'vue';
-import { Range } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 
 const props = defineProps({
     language: {
@@ -23,7 +23,8 @@ const props = defineProps({
     debugLocation: {
         type: Object,
         required: false
-    }
+    },
+  
 });
 const emit = defineEmits(['update:code']);
 
@@ -61,9 +62,16 @@ watch(() => props.jsonresult, () => {
 }, { deep: true });
 
 watch(() => props.language, (newLanguage) => {
-    const languageToUse = newLanguage === 'generic' ? 'javascript' : newLanguage;
-    editorRef.value?.updateOptions({ language: languageToUse });
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model) {
+            const languageToUse = newLanguage === 'generic' ? 'plaintext' : newLanguage;
+            monaco.editor.setModelLanguage(model, languageToUse);
+        }
+    }
 }, { immediate: true });
+
+
 
 function determineHighlightCode() {
     // Clear existing decorations
@@ -76,7 +84,7 @@ function determineHighlightCode() {
         .forEach(location => {
             const region = location.physicalLocation.region;
             newDecorations.push({
-                range: new Range(region.startLine, region.startColumn, region.endLine, region.endColumn),
+                range: new monaco.Range(region.startLine, region.startColumn, region.endLine, region.endColumn),
                 options: { inlineClassName: "code-highlight" }
             });
         });
@@ -103,7 +111,7 @@ function determineHighlightLinesFromTestResult() {
                 // Highlight expected lines (Green - should be present)
                 expected_lines.forEach(line => {
                     newDecorations.push({
-                        range: new Range(line - 1, 1, line - 1, 1),
+                        range: new monaco.Range(line - 1, 1, line - 1, 1),
                         options: {
                             isWholeLine: true,
                             className: reportedSet.has(line) ? "full-line-highlight-added" : "full-line-highlight-removed",
@@ -116,7 +124,7 @@ function determineHighlightLinesFromTestResult() {
                 reported_lines.forEach(line => {
                     if (!expectedSet.has(line)) {
                         newDecorations.push({
-                            range: new Range(line - 1, 1, line - 1, 1),
+                            range: new monaco.Range(line - 1, 1, line - 1, 1),
                             options: {
                                 isWholeLine: true,
                                 className: "full-line-highlight-removed",
@@ -137,7 +145,7 @@ function determineHighlightLinesFromTestResult() {
         const lineContent = model.getLineContent(lineNumber);
         if (lineContent.includes('//ok') || lineContent.includes('// ok')) {
             newDecorations.push({
-                range: new Range(lineNumber, 1, lineNumber, 1),
+                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: true,
                     className: "full-line-highlight-added",
@@ -151,16 +159,14 @@ function determineHighlightLinesFromTestResult() {
     existingHighlightLinesFromTestResult.value = editorRef.value.deltaDecorations(existingHighlightLinesFromTestResult.value, newDecorations);
 }
 
-function determineCodeFlowInformation() {
-    const runs = props.jsonresult?.parsedResult?.runs || [];
+function determineCodeFlowInformation(ruleResult) {
 
     editorRef.value.changeViewZones(accessor => {
         // Remove existing annotation zones
         exisitingAnnotationZones.value.forEach(zone => accessor.removeZone(zone));
+debugger;
 
-        runs.flatMap(run => run.results || [])
-            .flatMap(result => result.codeFlows || [])
-            .flatMap(codeFlow => codeFlow.threadFlows || [])
+        ruleResult?.codeFlows.flatMap(codeFlow => codeFlow.threadFlows || [])
             .flatMap(threadFlow => threadFlow.locations || [])
             .forEach((location, index) => {
                 const region = location?.location?.physicalLocation?.region;
