@@ -30,14 +30,23 @@ jobs:
       - name: Build for Windows
         run: npm run make-win
 
-      - name: Debug macOS Build Output
-        run: ls -R out/make/ # Check actual output location
-
-      - name: Upload Windows Artifacts
+      - name: Upload Windows Artifacts (Squirrel)
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
-          path: out/make/windows
+          name: windows-squirrel
+          path: out/make/squirrel.windows/x64/*
+
+      - name: Upload Windows Artifacts (WiX MSI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: out/make/wix/x64/*
+
+      - name: Upload Windows Artifacts (ZIP)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: out/make/zip/win32/x64/*
 
   build-macos:
     runs-on: macos-latest
@@ -56,15 +65,17 @@ jobs:
       - name: Build for macOS
         run: npm run make-mac
 
-      - name: Debug macOS Build Output
-        run: ls -R out/make/ 
-
-
-      - name: Upload macOS Artifacts
+      - name: Upload macOS DMG
         uses: actions/upload-artifact@v4
         with:
-          name: macos-build
-          path: out/make/mac
+          name: macos-dmg
+          path: out/make/*.dmg  # DMG files are in out/make/
+
+      - name: Upload macOS ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: out/make/zip/darwin/arm64/*
 
   build-linux:
     runs-on: ubuntu-latest
@@ -86,51 +97,98 @@ jobs:
       - name: Build for Linux
         run: npm run make-linux
 
-      - name: Debug macOS Build Output
-        run: ls -R out/make/ 
-
-      - name: Upload Linux Artifacts
+      - name: Upload Linux DEB
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build
-          path: out/make/linux
+          name: linux-deb
+          path: out/make/deb/x64/*
+
+      - name: Upload Linux RPM
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-rpm
+          path: out/make/rpm/x64/*
+
+      - name: Upload Linux ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-zip
+          path: out/make/zip/linux/x64/*
 
   release:
-    needs: [build-windows, build-macos, build-linux] # Wait for all builds to complete
+    needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Build
+      - name: Download Windows Build (Squirrel)
         uses: actions/download-artifact@v4
         with:
-          name: windows-build
-          path: windows
+          name: windows-squirrel
+          path: out/make/squirrel.windows/x64
 
-      - name: Download macOS Build
+      - name: Download Windows Build (WiX MSI)
         uses: actions/download-artifact@v4
         with:
-          name: macos-build
-          path: macos
+          name: windows-msi
+          path: out/make/wix/x64
 
-      - name: Download Linux Build
+      - name: Download Windows Build (ZIP)
         uses: actions/download-artifact@v4
         with:
-          name: linux-build
-          path: linux
+          name: windows-zip
+          path: out/make/zip/win32/x64
 
-      - name: Create or Update Rolling Release
+      - name: Download macOS DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: out/make/
+
+      - name: Download macOS ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-zip
+          path: out/make/zip/darwin/arm64
+
+      - name: Download Linux DEB
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: out/make/deb/x64
+
+      - name: Download Linux RPM
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-rpm
+          path: out/make/rpm/x64
+
+      - name: Download Linux ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-zip
+          path: out/make/zip/linux/x64
+
+      - name: List Downloaded Files (Debug)
+        run: ls -R out/make/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: latest
           name: "Rolling Release"
           body: "🚀 This is the latest rolling release built from `main`."
           draft: false
-          prerelease: true
+          prerelease: false
           files: |
-            out/make/windows/*
-            out/make/mac/*
-            out/make/linux/*
+            out/make/squirrel.windows/x64/*
+            out/make/wix/x64/*
+            out/make/zip/win32/x64/*
+            out/make/*.dmg
+            out/make/zip/darwin/arm64/*
+            out/make/deb/x64/*
+            out/make/rpm/x64/*
+            out/make/zip/linux/x64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
