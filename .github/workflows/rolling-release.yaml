@@ -53,11 +53,12 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build for macOS
+        run: npm run make-mac
+
       - name: Debug macOS Build Output
         run: ls -R out/make/ 
 
-      - name: Build for macOS
-        run: npm run make-mac
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
