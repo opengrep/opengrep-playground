@@ -28,24 +28,13 @@ module.exports = {
         },
       },
     },
-    // ✅ Linux RPM Package (For Fedora/RHEL)
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {
-        options: {
-          maintainer: 'Your Name',
-          homepage: 'https://yourwebsite.com',
-          categories: ['Utility'],
-        },
-      },
-    },
     // ✅ Windows Installer (Squirrel)
     {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'your-app-name',
-        setupIcon: 'assets/app-icon.ico',
-        loadingGif: 'assets/loading.gif',
+        // setupIcon: 'assets/app-icon.ico',
+        // loadingGif: 'assets/loading.gif',
         authors: 'Your Company',
         exe: 'your-app-name.exe',
       },
@@ -61,8 +50,8 @@ module.exports = {
       config: {
         language: 1033, // English
         manufacturer: 'Your Company',
-        upgradeCode: '4e29d7a3-62b5-4e2f-91e3-2c4370b53a2e', // Replace with a unique UUID
-        icon: 'assets/app-icon.ico',
+        upgradeCode: '', // Replace with a unique UUID
+        // icon: 'assets/app-icon.ico',
       },
     },
   ],
