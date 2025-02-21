@@ -15,10 +15,10 @@ module.exports = {
     },
     extraResource: ['bin'],
     win32metadata: {
-      CompanyName: 'Your Company',
-      FileDescription: 'Your App Description',
-      OriginalFilename: 'your-app-name.exe',
-      ProductName: 'Your App Name',
+      CompanyName: 'Opengrep',
+      FileDescription: 'Opengrep Playgorund Editor',
+      OriginalFilename: 'opengrep-playground.exe',
+      ProductName: 'Opengrep Playground',
     },
   },
   rebuildConfig: {},
@@ -30,7 +30,7 @@ module.exports = {
             name: '@electron-forge/maker-deb',
             config: {
               options: {
-                maintainer: 'Your Name',
+                maintainer: 'Opengrep',
                 homepage: 'https://yourwebsite.com',
                 categories: ['Utility'],
               },
@@ -40,7 +40,7 @@ module.exports = {
             name: '@electron-forge/maker-rpm',
             config: {
               options: {
-                maintainer: 'Your Name',
+                maintainer: 'Opengrep',
                 homepage: 'https://yourwebsite.com',
                 categories: ['Utility'],
               },
@@ -54,16 +54,17 @@ module.exports = {
           {
             name: '@electron-forge/maker-squirrel',
             config: {
-              name: 'your-app-name',
-              authors: 'Your Company',
-              exe: 'your-app-name.exe',
+              name: 'opengrep-playground', // Match package.json "name"
+              setupExe: 'opengrep-playground-setup.exe',
+              authors: 'Opengrep',
+              exe: 'opengrep-playground.exe',
             },
           },
           {
             name: '@electron-forge/maker-wix',
             config: {
               language: 1033, // English
-              manufacturer: 'Your Company',
+              manufacturer: 'Opengrep',
               upgradeCode: '', // Use a valid UUID todo
             },
           },
