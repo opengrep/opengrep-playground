@@ -30,6 +30,9 @@ jobs:
       - name: Build for Windows
         run: npm run make-win
 
+      - name: Debug macOS Build Output
+        run: ls -R out/make/ # Check actual output location
+
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -49,6 +52,9 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Debug macOS Build Output
+        run: ls -R out/make/ 
 
       - name: Build for macOS
         run: npm run make-mac
@@ -78,6 +84,9 @@ jobs:
 
       - name: Build for Linux
         run: npm run make-linux
+
+      - name: Debug macOS Build Output
+        run: ls -R out/make/ 
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -120,7 +129,7 @@ jobs:
           prerelease: true
           files: |
             out/make/windows/*
-            out/make/macos/*
+            out/make/mac/*
             out/make/linux/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
