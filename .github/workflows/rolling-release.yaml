@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main # Triggers on every push to `main`
+# testing 
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-windows:
