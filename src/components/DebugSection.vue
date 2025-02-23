@@ -6,20 +6,21 @@
 </template>
 
 <script setup>
-import { ref, inject, defineExpose } from "vue";
+import { ref, inject, watch } from "vue";
 import TreeView from "./TreeView.vue";
+import { store } from '../store'
 
-const getSafeDir = inject('$getSafeDir');
-const joinPath = inject('$joinPath');
 const readFile = inject('$readFile');
 
 const parsedData = ref(null);
-const emit = defineEmits(['inspectLocationChanged']);
+
+watch(() => store.jsonResult, () => {
+  generateDebuggingInfo();
+}, { deep: true });
+
 
 async function generateDebuggingInfo() {
-  const safeDir = await getSafeDir();
-  const findingsPath = await joinPath(safeDir, "findings.json");
-  const findingsJson = await readFile(findingsPath);
+  const findingsJson = await readFile(store.findingsPath);
   parsedData.value = JSON.parse(findingsJson);
 
   const explanations = parsedData.value.explanations || [];
@@ -125,6 +126,7 @@ function formatOpName(op) {
   const opMapping = {
     "Or": "pattern-either",
     "And": "patterns",
+    "Negation": "pattern-not",
     "Taint": "taint",
     "TaintSource": "pattern-sources",
     "TaintSink": "pattern-sinks",
@@ -134,11 +136,8 @@ function formatOpName(op) {
 }
 
 function handleHover(debugCodeLocation) {
-  emit('inspectLocationChanged', debugCodeLocation);
+  store.codeEditorDebugLocation = debugCodeLocation;
 }
-
-// Expose the determineCodeFlowInformation function to the parent component
-defineExpose({ generateDebuggingInfo });
 
 </script>
 

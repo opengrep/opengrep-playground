@@ -13,7 +13,7 @@
             <h3>Rule Editor</h3>
           </div>
           <div class="code-editor-container">
-            <RuleEditor @update:code="handleRuleUpdate" @languageDetermined="handleCodeEditorLanguage" />
+            <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
           </div>
         </div>
 
@@ -23,64 +23,43 @@
             <h3>Language Editor</h3>
           </div>
           <div class="code-editor-container">
-            <CodeEditor ref="codeEditor" :language="state.languageDetails?.monacoLanguage"
-              :jsonresult="state.jsonResult" @update:code="handleCodeUpdate" />
+            <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
           </div>
         </div>
 
         <!-- Results Viewer -->
         <div class="column-view" style="flex: 1;">
-          <h3>Results</h3>
-          <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" :language="language"
-            :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath" @binaryEnded="handleBinaryEnded"
-            @showDataFlows="handleShowDataFlows" :disableRun="isRuleEditorEmpty" />
+          <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
         </div>
       </div>
       <!-- Debug Rule Area -->
       <div class="debug-section">
-        <DebugSection ref="debugSection" :ruleFile="state.selectedRuleFilePath" :codeSampleFile="state.selectedCodeSampleFilePath"
-          @inspectLocationChanged="handleInspectLocationChanged" />
+        <DebugSection />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted, inject, ref, computed } from 'vue';
+import { onMounted, inject, ref } from 'vue';
 import CodeEditor from './components/CodeEditor.vue';
 import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
+import { store } from './store'
 
+const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
-const removeFile = inject('$removeFile');
 
-const state = reactive({
-  jsonResult: null,
-  safeDir: '',
-  languageDetails: null,
-  selectedRuleFilePath: null,
-  selectedCodeSampleFilePath: null,
-  ruleEditorCode: '',
-});
-
-// TODO make language coming from user input
 const codeEditor = ref(null);
-const debugSection = ref(null);
-const languageCode = ref('');
-
-const isRuleEditorEmpty = computed(() => !state.ruleEditorCode);
 
 onMounted(async () => {
-  state.safeDir = await getSafeDir();
+  store.safeDir = await getSafeDir();
+  store.rootDir = await getRootDir();
+  store.findingsPath = await joinPath(store.safeDir, "findings.json");
 });
-
-async function handleBinaryEnded(result) {
-  state.jsonResult = result;
-  await debugSection.value.generateDebuggingInfo();
-};
 
 function handleShowDataFlows(ruleResult) {
   if (codeEditor.value) {
@@ -88,45 +67,29 @@ function handleShowDataFlows(ruleResult) {
   }
 };
 
-async function handleCodeUpdate(code) {
+async function handleCodeEditorUpdate() {
   try {
-    languageCode.value = code;
-    const codeSampleFilePath = await joinPath(state.safeDir, `untitled_code.${state.languageDetails?.extension ?? 'txt'}`);
-    
-    // Delete the txt file if the extension is defined and not 'txt'
-    if (state.languageDetails?.extension && state.languageDetails.extension !== 'txt') {
-      const txtFilePath = await joinPath(state.safeDir, 'untitled_code.txt');
-      await removeFile(txtFilePath); // Overwrite with empty content to effectively delete
+    if(store.ruleEditorCode === '') {
+      return;
     }
 
-    await writeFile(codeSampleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
-    state.selectedCodeSampleFilePath = codeSampleFilePath;
+    const codeSampleFilePath = await joinPath(store.safeDir, `untitled_code.${store.languageDetails?.extension ?? 'txt'}`);
+    await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    store.codeSampleFilePath = codeSampleFilePath;
   } catch (error) {
     console.error("Error saving code:", error);
   }
 }
 
-async function handleRuleUpdate(code) {
+async function handleRuleEditorUpdate() {
   try {
-    state.ruleEditorCode = code;
-    const ruleFilePath = await joinPath(state.safeDir, 'untitled_rule.yaml');
-    await writeFile(ruleFilePath, code, { flag: 'w' }); // 'w' flag to create or overwrite the file
-    state.selectedRuleFilePath = ruleFilePath;
-    await handleCodeUpdate(languageCode.value);
+    const ruleFilePath = await joinPath(store.safeDir, 'untitled_rule.yaml');
+    await writeFile(ruleFilePath, store.ruleEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    store.ruleFilePath = ruleFilePath;
+    await handleCodeEditorUpdate();
   } catch (error) {
     console.error("Error saving code:", error);
   }
-}
-
-function handleInspectLocationChanged(debugCodeLocation) {
-  if (codeEditor.value) {
-    codeEditor.value.highlightDebugLocationCode(debugCodeLocation);
-  }
-}
-
-function handleCodeEditorLanguage(details) {
-  console.log("Language determined:", details);
-  state.languageDetails = details;
 }
 </script>
 

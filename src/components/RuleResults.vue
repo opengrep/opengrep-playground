@@ -1,159 +1,94 @@
 <template>
-    <button @click="handleRunBinary" :class="{ 'disabled': state.disableRun }" style="align-self: flex-end;">Evaluate</button>
+    <div class="results-header">
+        <h3>Results</h3>
+        <button @click="handleRunBinary" :class="{ 'disabled': !store.ruleEditorCode }"
+            style="align-self: flex-end;">Evaluate</button>
+    </div>
 
-    <div v-if="state.isLoading" class="loading-container">
+    <div v-if="isLoading" class="loading-container">
         <div class="loading-circle"></div>
     </div>
 
     <div class="results-container" v-else>
-        <div v-if="state.parsedResult">
-            <div v-for="(run, index) in state.parsedResult.runs" :key="run.tool.driver.name" class="run-card">
-                <h3>
-                    {{ run.tool.driver.name }}
-                </h3>
-                <div style="cursor: pointer;">
-                    <div v-for="(result, resultIndex) in run.results"
-                        :key="result.ruleId" class="result-card">
-                        <div @click="toggleCollapse(resultIndex)" style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4>Rule: {{ result.ruleId }}</h4>
-                            <span>{{ collapsedRuns[index] ? '▼' : '▲' }}</span>
-                        </div>
-                        <div v-show="!collapsedRuns[resultIndex]">
-                            <button class="small" @click="handleShowDataFlows(result)" style="align-self: center;">Show
-                                dataflows</button>
-                            <p>{{ result.message.text }}</p>
-                            <div v-for="location in result.locations"
-                                :key="location.physicalLocation.artifactLocation.uri" class="location-card">
-                                <p><strong>Snippet:</strong><br><br>{{ location.physicalLocation.region.snippet.text }}
-                                </p>
+        <!-- SCAN RESULTS -->
+        <h2 @click="toggleSection('scanResults')" style="cursor: pointer;">
+            Scan Results <span>{{ collapsedSections.scanResults ? '▼' : '▲' }}</span>
+        </h2>
+        <div v-show="!collapsedSections.scanResults" class="scrollable-section">
+            <div v-if="store.jsonResult?.scanResults">
+                <div v-for="(run, index) in store.jsonResult.scanResults.runs" :key="run.tool.driver.name"
+                    class="run-card">
+                    <div style="cursor: pointer;">
+                        <div v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
+                            <div @click="toggleCollapse(resultIndex)"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4>Rule: {{ result.ruleId }}</h4>
+                                <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
                             </div>
-
-                            <div v-if="state.testResults.results[props.ruleFile]" class="test-results">
-                                <div v-for="(check, ruleId) in state.testResults.results[props.ruleFile].checks"
-                                    :key="ruleId">
-                                    <div v-for="(matches, codePath) in check.matches" :key="codePath">
-                                        <div class="test-result-card"
-                                            :class="{ 'passed': matches.reported_lines.includes(matches.expected_lines[resultIndex]), 'failed': !matches.reported_lines.includes(matches.expected_lines[resultIndex]) }">
-                                            <span class="status-badge"
-                                                :class="{ 'pass': matches.reported_lines.includes(matches.expected_lines[resultIndex]), 'fail': !matches.reported_lines.includes(matches.expected_lines[resultIndex]) }">
-                                                {{ matches.reported_lines.includes(matches.expected_lines[resultIndex])
-                                                ? 'PASS' : 'FAIL' }}
-                                            </span>
-                                            <p><strong>Expected Line:</strong> {{ matches.expected_lines[resultIndex] }}
-                                            </p>
-                                            <p><strong>Line Status:</strong> {{
-                                                matches.reported_lines.includes(matches.expected_lines[resultIndex]) ?
-                                                'must match' : 'must not match' }}</p>
-                                        </div>
-                                    </div>
-                                    <div v-if="check.errors.length" class="error-section">
-                                        <h5>Errors:</h5>
-                                        <ul>
-                                            <li v-for="(error, index) in check.errors" :key="index"
-                                                class="error-message">
-                                                {{ error }}
-                                            </li>
-                                        </ul>
-                                    </div>
+                            <div class="result-body" v-show="!collapsedRuns[resultIndex]">
+                                <p>{{ result.message.text }}</p>
+                                <div v-for="location in result.locations"
+                                    :key="location.physicalLocation.artifactLocation.uri" class="location-card">
+                                    <p><strong>Snippet on line {{ location.physicalLocation.region.startLine
+                                            }}:</strong><br><br>{{ location.physicalLocation.region.snippet.text
+                                        }}
+                                    </p>
                                 </div>
+                            </div>
+                            <div class="result-footer" v-if="result.codeFlows?.length > 0">
+                                <button class="small" @click="handleShowDataFlows(result)"
+                                    style="align-self: center;">Show
+                                    dataflows</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="test-results-summary">
-                <h3>{{ passedTests }} / {{ totalTests }} Tests Passed</h3>
+        <!-- TEST RESULTS -->
+        <h2 @click="toggleSection('testResults')" style="cursor: pointer;">
+            Test Results <span>{{ collapsedSections.testResults ? '▼' : '▲' }}</span>
+        </h2>
+        <div v-show="!collapsedSections.testResults" class="scrollable-section">
+            <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
+                <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
+                    :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
+                    <p>{{ getMatchSatusText(testResult) }}
+                        <span> line {{ testResult.lineNumber }}</span>
+                    </p>
+                    <span class="status-badge"
+                        :class="{ 'pass': testResult.status === 'SUCCESS', 'fail': testResult.status !== 'SUCCESS' }">
+                        {{ testResult.status === 'SUCCESS' ? 'PASS' : 'FAIL' }}
+                    </span>
+                </div>
             </div>
         </div>
-        <pre v-else>{{ state.result }}</pre>
     </div>
 </template>
 
 <script setup>
-import { inject, defineProps, defineEmits, reactive, watch, computed } from 'vue';
+import { inject, defineEmits, ref } from 'vue';
+import { store } from '../store'
 
-const props = defineProps({
-    language: {
-        type: String,
-        required: true
-    },
-    ruleFile: {
-        type: String,
-        required: true
-    },
-    codeSampleFile: {
-        type: String,
-        required: true
-    },
-    disableRun: {
-        type: Boolean,
-        default: true
-    }
-});
+const emit = defineEmits(['showDataFlows']);
 
-const emit = defineEmits(['binaryEnded', 'showDataFlows']);
-
-const getSafeDir = inject('$getSafeDir');
-const getRootDir = inject('$getRootDir');
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
 const getPlatform = inject('$getPlatform');
 
-const state = reactive({
-    result: '',
-    isLoading: false,
-    parsedResult: null,
-    testResults: [],
-    rulesPath: '',
-    codeSamplePath: '',
-    safeDir: '',
-    disableRun: props.disableRun
+const isLoading = ref(false);
+const collapsedRuns = ref({});
+const collapsedSections = ref({
+    scanResults: false,
+    testResults: false
 });
-
-const collapsedRuns = reactive({});
-
-// Compute total & passed tests dynamically
-const totalTests = computed(() => {
-    return Object.values(state.testResults.results || {})
-        .flatMap(fileResults => Object.values(fileResults.checks))
-        .length;
-});
-
-const passedTests = computed(() => {
-    return Object.values(state.testResults.results || {})
-        .flatMap(fileResults => Object.values(fileResults.checks))
-        .filter(check => check.passed).length;
-});
-
-watch(
-    () => [props.language, props.ruleFile, props.codeSampleFile],
-    async (newValues) => {
-        state.safeDir = await getSafeDir();
-        state.rulesPath = props.ruleFile;
-        state.codeSamplePath = props.codeSampleFile;
-    },
-    { immediate: true }
-);
-
-watch(
-    () => props.disableRun,
-    async (newValue) => {
-        state.disableRun = newValue;
-    },
-    { immediate: true }
-);
 
 async function handleRunBinary() {
-    if (state.disableRun) return;
+    if (!store.ruleEditorCode) return;
 
     try {
-        state.isLoading = true;
-
-        // Get the correct resources path
-        const rootDir = await getRootDir();
-
-        console.log("platform:", await getPlatform());
+        isLoading.value = true;
         const platform = await getPlatform();
 
         // Select correct binary based on OS
@@ -167,55 +102,73 @@ async function handleRunBinary() {
         }
 
         // Construct the full binary path
-        const binaryPath = await joinPath(rootDir, 'bin', binaryFileName);
+        const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
 
         console.log("Running binary at path:", binaryPath);
-        console.log("Rules path:", state.rulesPath);
-        console.log("Code sample path:", state.codeSamplePath);
+        console.log("Rules path:", store.ruleFilePath);
+        console.log("Code sample path:", store.codeSampleFilePath);
 
         const [response, testResponse] = await Promise.all([
-            runBinary(binaryPath, ["scan", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${state.safeDir}/findings.json"`]),
-            runBinary(binaryPath, ["scan", "--test", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--json"])
+            runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/findings.json"`]),
+            runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
         ]);
 
-        state.result = response.output;
-        console.log("scan output:", response.output);
-        console.log("test output:", testResponse.output);
-        state.parsedResult = JSON.parse(response.output);
-        state.testResults = JSON.parse(testResponse.output);
+        const scanResults = JSON.parse(response.output);
+        const testResults = JSON.parse(testResponse.output);
 
         // Initialize collapsed state for each result in each run
-        state.parsedResult.runs.forEach((run) => {
+        scanResults.runs.forEach((run) => {
             run.results.forEach((result, resultIndex) => {
                 collapsedRuns[resultIndex] = false;
             });
         });
 
-        emit('binaryEnded', {
-            parsedResult: state.parsedResult,
-            testResults: state.testResults
-        });
+        store.jsonResult = {
+            ...store.jsonResult,
+            scanResults,
+            testResults
+        };
+
+        console.log("json result:", store.jsonResult);
     } catch (error) {
         console.error("Error running binary:", error);
     } finally {
-        state.isLoading = false;
+        isLoading.value = false;
     }
 }
 
 function toggleCollapse(index) {
-    debugger;
     collapsedRuns[index] = !collapsedRuns[index];
+}
+
+function toggleSection(section) {
+    collapsedSections.value[section] = !collapsedSections.value[section];
 }
 
 function handleShowDataFlows(result) {
     emit('showDataFlows', result);
 }
+
+function getMatchSatusText(result) {
+    if (!result.mustMatch && result.status === 'UNTESTED') {
+        return 'Untested match on';
+    }
+    return result.mustMatch ? 'Must match' : 'Must not match';
+}
 </script>
 
 <style scoped>
-/* General styles */
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .test-results {
     font-family: Arial, sans-serif;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-gap: 8px;
+    white-space: nowrap;
 }
 
 h3 {
@@ -231,17 +184,25 @@ h3 {
 .test-result-card,
 .result-card {
     border-radius: 6px;
-    padding: 15px;
-    margin-top: 10px;
+    padding: 8px;
+    margin-top: 8px;
     border: 1px solid #ccc;
     background-color: #f8f8f8;
     position: relative;
 }
 
+.test-result-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.result-body {
+    margin-bottom: 8px;
+}
+
+
 .status-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     padding: 5px 10px;
     border-radius: 5px;
     font-weight: bold;
@@ -308,7 +269,6 @@ button {
     &.small {
         padding: 5px 10px;
         height: 50%;
-        align-self: flex-end;
     }
 
     &:hover:not(.disabled) {
@@ -355,5 +315,11 @@ button {
     p {
         overflow-wrap: break-word;
     }
+}
+
+/* Scrollable Sections */
+.scrollable-section {
+    max-height: 300px;
+    overflow-y: auto;
 }
 </style>
