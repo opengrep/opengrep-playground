@@ -150,8 +150,6 @@ async function handleRunBinary() {
         console.log("json result:", store.jsonResult);
     } catch (error) {
         console.error("Error running binary:", error);
-    } finally {
-        isLoading.value = false;
     }
 }
 
