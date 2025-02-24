@@ -7,12 +7,21 @@ const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
 
+// ✅ Ensure binaries are executable before packaging
+const binaries = ['bin/opengrep_manylinux_x86']; // Add all necessary binaries here
+binaries.forEach((bin) => {
+  const binPath = path.resolve(__dirname, bin);
+  if (fs.existsSync(binPath)) {
+    fs.chmodSync(binPath, 0o755); // Ensure execute permissions
+  }
+});
+
 module.exports = {
   packagerConfig: {
     asar: {
       unpack: '**/bin/**', // Ensure binaries are outside ASAR
     },
-    extraResource: ['bin'],
+    extraResource: ['bin'], // Include binary folder
     win32metadata: {
       CompanyName: 'Opengrep',
       FileDescription: 'Opengrep Playground Editor',
@@ -43,6 +52,9 @@ module.exports = {
                 homepage: 'https://yourwebsite.com',
                 categories: ['Utility'],
               },
+              scripts: {
+                post: './postinstall.sh', // ✅ Add post-install script
+              },
             },
           },
         ]
@@ -53,7 +65,7 @@ module.exports = {
           {
             name: '@electron-forge/maker-squirrel',
             config: {
-              name: 'opengrep-playground', // Match package.json "name"
+              name: 'opengrep-playground',
               setupExe: 'opengrep-playground-setup.exe',
               authors: 'Opengrep',
               exe: 'opengrep-playground.exe',
@@ -75,7 +87,7 @@ module.exports = {
           {
             name: '@electron-forge/maker-dmg',
             config: {
-              format: 'ULFO'
+              format: 'ULFO',
             },
           },
         ]

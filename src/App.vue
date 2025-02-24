@@ -1,47 +1,49 @@
 <template>
   <div class="container">
-
-      <!-- Rules Editor -->
-      <div class="code-area">
-        <div class="column-view">
-          <div class="editor-header">
-            <h3>Rule Editor</h3>
-          </div>
-          <div class="code-editor-container">
-            <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
-          </div>
+    <!-- Rules Editor -->
+    <div class="code-area">
+      <div class="column-view resizable">
+        <div class="editor-header">
+          <h3>Rule Editor</h3>
         </div>
-
-        <!-- Code Viewer -->
-        <div class="column-view">
-          <div class="editor-header">
-            <h3>Language Editor</h3>
-          </div>
-          <div class="code-editor-container">
-            <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
-          </div>
+        <div class="code-editor-container">
+          <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
         </div>
-
-        <!-- Results Viewer -->
-        <div class="column-view" style="flex: 1 1 0%;">
-          <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
-        </div>
+        <div class="resize-handle" @mousedown="startResize($event, 0)"></div>
       </div>
-      <!-- Debug Rule Area -->
-      <div class="meta-section">
-        <DebugSection style="flex: 3; overflow: scroll;" />
-        <!-- HISTORY SECTION -->
-        <div style="flex: 1; overflow: scroll;">
-          <h3>History</h3>
-          <ul class="history-list">
-            <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
-              class="history-entry">
-              <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
-            </li>
-          </ul>
+
+      <!-- Code Viewer -->
+      <div class="column-view resizable">
+        <div class="editor-header">
+          <h3>Language Editor</h3>
         </div>
+        <div class="code-editor-container">
+          <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
+        </div>
+        <div class="resize-handle" @mousedown="startResize($event, 1)"></div>
+      </div>
+
+      <!-- Results Viewer -->
+      <div class="column-view resizable" style="flex-grow: 1;">
+        <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
+        <div class="resize-handle" @mousedown="startResize($event, 2)"></div>
       </div>
     </div>
+    <!-- Debug Rule Area -->
+    <div class="meta-section">
+      <DebugSection style="flex: 3;" class="scroll-container"/>
+      <!-- HISTORY SECTION -->
+      <div style="flex: 1" class="scroll-container">
+        <h3>History</h3>
+        <ul class="history-list">
+          <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
+            class="history-entry">
+            <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -58,6 +60,9 @@ const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
 
 const codeEditor = ref(null);
+const resizingColumn = ref(null);
+const startX = ref(0);
+const startWidth = ref(0);
 
 onMounted(async () => {
   store.safeDir = await getSafeDir();
@@ -104,6 +109,28 @@ function handleHistoryClick(entry) {
     store.ruleEditorCode = entry.content;
   }
 }
+
+function startResize(event, columnIndex) {
+  resizingColumn.value = columnIndex;
+  startX.value = event.clientX;
+  startWidth.value = event.target.parentElement.offsetWidth;
+  document.addEventListener('mousemove', resizeColumn);
+  document.addEventListener('mouseup', stopResize);
+}
+
+function resizeColumn(event) {
+  if (resizingColumn.value !== null) {
+    const dx = event.clientX - startX.value;
+    const newWidth = startWidth.value + dx;
+    document.querySelectorAll('.column-view')[resizingColumn.value].style.width = `${newWidth}px`;
+  }
+}
+
+function stopResize() {
+  document.removeEventListener('mousemove', resizeColumn);
+  document.removeEventListener('mouseup', stopResize);
+  resizingColumn.value = null;
+}
 </script>
 
 <style lang="scss">
@@ -138,13 +165,27 @@ $secondary-color: #2ecc71;
   .column-view {
     width: 300px;
     padding: 15px;
-    border-right: 1px solid $border-color;
-    flex: 2;
+    flex-grow: 2;
     overflow: auto;
     font-family: monospace;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: relative;
+  }
+
+  .column-view:not(:last-child) {
+    border-right: 1px solid $border-color;
+  }
+
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: ew-resize;
+    background-color: transparent;
   }
 
   .meta-section {
@@ -170,7 +211,6 @@ $secondary-color: #2ecc71;
         align-items: center;
         padding: 8px;
         border-radius: 4px;
-
 
         &:hover {
           background: #e9ecef;
@@ -205,5 +245,9 @@ $secondary-color: #2ecc71;
     height: 100%;
     width: 100%;
   }
+}
+
+.scroll-container {
+  overflow-y: auto;
 }
 </style>

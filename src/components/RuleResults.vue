@@ -6,18 +6,18 @@
 
     <div class="results-container">
         <!-- SCAN RESULTS -->
-        <div style="flex: 2; overflow: scroll">
+        <div style="flex: 2" class="scrollable-section">
             <div v-if="isScanLoading" class="loading-container">
                 <div class="loading-circle"></div>
             </div>
-            <template v-else class="scrollable-section">
+            <template v-else>
                 <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
                     :key="run.tool.driver.name" class="run-card">
 
                     <div v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
                         <div @click="toggleCollapse(resultIndex)"
                             style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4>Rule: {{ result.ruleId }}</h4>
+                            <h4>Rule: {{ result.ruleId.split('tmp.').pop() }}</h4>
                             <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
                         </div>
                         <div class="result-body" v-show="!collapsedRuns[resultIndex]">
@@ -41,11 +41,11 @@
 
         <!-- TEST RESULTS -->
         <h4 @click="toggleSection('testResults')" style="cursor: pointer;">Test Results </h4>
-        <div style="flex: 1; overflow: scroll">           
+        <div style="flex: 1" class="scrollable-section">           
             <div v-if="isTestLoading" class="loading-container">
                 <div class="loading-circle"></div>
             </div>
-            <template v-else class="scrollable-section">
+            <template v-else>
                 <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
                     <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
                         :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
@@ -130,7 +130,7 @@ async function handleRunBinary() {
             });
         });
 
-        const testResponse = await runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"], windowsCliFix)
+        const testResponse = await runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json", windowsCliFix])
         const testResults = JSON.parse(testResponse.output);
         store.jsonResult = {
             ...store.jsonResult,
