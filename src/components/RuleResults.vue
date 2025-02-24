@@ -6,64 +6,59 @@
 
     <div class="results-container">
         <!-- SCAN RESULTS -->
-        <h4 @click="toggleSection('scanResults')" style="cursor: pointer;">
-            Scan Results <span>{{ collapsedSections.scanResults ? '▼' : '▲' }}</span>
-        </h4>
-        <div v-if="isScanLoading" class="loading-container">
-        <div class="loading-circle"></div>
-    </div>
-        <div v-else v-show="!collapsedSections.scanResults" class="scrollable-section">
-            <div v-if="store.jsonResult?.scanResults">
-                <div v-for="(run, index) in store.jsonResult.scanResults.runs" :key="run.tool.driver.name"
-                    class="run-card">
-                    <div style="cursor: pointer;">
-                        <div v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
-                            <div @click="toggleCollapse(resultIndex)"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <h4>Rule: {{ result.ruleId }}</h4>
-                                <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
+        <div style="flex: 2; overflow: scroll">
+            <div v-if="isScanLoading" class="loading-container">
+                <div class="loading-circle"></div>
+            </div>
+            <template v-else class="scrollable-section">
+                <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
+                    :key="run.tool.driver.name" class="run-card">
+
+                    <div v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
+                        <div @click="toggleCollapse(resultIndex)"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4>Rule: {{ result.ruleId }}</h4>
+                            <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
+                        </div>
+                        <div class="result-body" v-show="!collapsedRuns[resultIndex]">
+                            <p>{{ result.message.text }}</p>
+                            <div v-for="location in result.locations"
+                                :key="location.physicalLocation.artifactLocation.uri" class="location-card">
+                                <p><strong>Snippet on line {{ location.physicalLocation.region.startLine
+                                        }}:</strong><br><br>{{ location.physicalLocation.region.snippet.text
+                                    }}
+                                </p>
                             </div>
-                            <div class="result-body" v-show="!collapsedRuns[resultIndex]">
-                                <p>{{ result.message.text }}</p>
-                                <div v-for="location in result.locations"
-                                    :key="location.physicalLocation.artifactLocation.uri" class="location-card">
-                                    <p><strong>Snippet on line {{ location.physicalLocation.region.startLine
-                                            }}:</strong><br><br>{{ location.physicalLocation.region.snippet.text
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="result-footer" v-if="result.codeFlows?.length > 0">
-                                <button class="small" @click="handleShowDataFlows(result)"
-                                    style="align-self: center;">Show
-                                    dataflows</button>
-                            </div>
+                        </div>
+                        <div class="result-footer" v-if="result.codeFlows?.length > 0">
+                            <button class="small" @click="handleShowDataFlows(result)" style="align-self: center;">Show
+                                dataflows</button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
 
         <!-- TEST RESULTS -->
-        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">
-            Test Results <span>{{ collapsedSections.testResults ? '▼' : '▲' }}</span>
-        </h4>
-        <div v-if="isTestLoading" class="loading-container">
-        <div class="loading-circle"></div>
-    </div>
-        <div v-else v-show="!collapsedSections.testResults" class="scrollable-section">
-            <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
-                <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
-                    :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
-                    <p>{{ getMatchSatusText(testResult) }}
-                        <span> line {{ testResult.lineNumber }}</span>
-                    </p>
-                    <span class="status-badge"
-                        :class="{ 'pass': testResult.status === 'SUCCESS', 'fail': testResult.status !== 'SUCCESS' }">
-                        {{ testResult.status === 'SUCCESS' ? 'PASS' : 'FAIL' }}
-                    </span>
-                </div>
+        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">Test Results </h4>
+        <div style="flex: 1; overflow: scroll">           
+            <div v-if="isTestLoading" class="loading-container">
+                <div class="loading-circle"></div>
             </div>
+            <template v-else class="scrollable-section">
+                <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
+                    <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
+                        :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
+                        <p>{{ getMatchSatusText(testResult) }}
+                            <span> line {{ testResult.lineNumber }}</span>
+                        </p>
+                        <span class="status-badge"
+                            :class="{ 'pass': testResult.status === 'SUCCESS', 'fail': testResult.status !== 'SUCCESS' }">
+                            {{ testResult.status === 'SUCCESS' ? 'PASS' : 'FAIL' }}
+                        </span>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </template>
@@ -81,10 +76,7 @@ const getPlatform = inject('$getPlatform');
 const isScanLoading = ref(false);
 const isTestLoading = ref(false);
 const collapsedRuns = ref({});
-const collapsedSections = ref({
-    scanResults: false,
-    testResults: false
-});
+
 
 async function handleRunBinary() {
     if (!store.ruleEditorCode) return;
@@ -98,7 +90,7 @@ async function handleRunBinary() {
         editorType: 'rule-editor',
         content: store.ruleEditorCode,
         timestamp: new Date().toLocaleString()
-    }); 
+    });
 
     try {
         isScanLoading.value = true;
@@ -157,10 +149,6 @@ function toggleCollapse(index) {
     collapsedRuns[index] = !collapsedRuns[index];
 }
 
-function toggleSection(section) {
-    collapsedSections.value[section] = !collapsedSections.value[section];
-}
-
 function handleShowDataFlows(result) {
     emit('showDataFlows', result);
 }
@@ -180,16 +168,18 @@ function getMatchSatusText(result) {
     align-items: center;
 }
 
-.results-container{
-    height: 100%;
+.results-container {
     display: flex;
     flex-direction: column;
+    flex-wrap: wrap;
+    overflow: hidden;
+    flex: 1;
 }
 
 .test-results {
     font-family: Arial, sans-serif;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     grid-gap: 8px;
     white-space: nowrap;
 }

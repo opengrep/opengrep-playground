@@ -1,7 +1,6 @@
 <template>
   <div class="container">
-    <!-- Main Editor Section -->
-    <div class="editor">
+
       <!-- Rules Editor -->
       <div class="code-area">
         <div class="column-view">
@@ -24,15 +23,15 @@
         </div>
 
         <!-- Results Viewer -->
-        <div class="column-view" style="flex: 1; overflow: hidden;">
+        <div class="column-view" style="flex: 1 1 0%;">
           <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
         </div>
       </div>
       <!-- Debug Rule Area -->
       <div class="meta-section">
-        <DebugSection style="flex: 3" />
+        <DebugSection style="flex: 3; overflow: scroll;" />
         <!-- HISTORY SECTION -->
-        <div style="flex: 1">
+        <div style="flex: 1; overflow: scroll;">
           <h3>History</h3>
           <ul class="history-list">
             <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
@@ -43,7 +42,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -118,10 +116,7 @@ $secondary-color: #2ecc71;
   display: flex;
   height: 100vh;
   overflow: auto;
-}
 
-/* Main Content */
-.editor {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -137,7 +132,7 @@ $secondary-color: #2ecc71;
   .code-area {
     display: flex;
     flex: 3;
-    max-height: 70%;
+    max-height: 75%;
   }
 
   .column-view {
@@ -154,7 +149,7 @@ $secondary-color: #2ecc71;
 
   .meta-section {
     padding: 15px;
-    overflow: auto;
+    overflow: hidden;
     font-family: monospace;
     flex: 1;
     display: flex;
