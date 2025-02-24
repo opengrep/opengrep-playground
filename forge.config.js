@@ -53,7 +53,7 @@ module.exports = {
                 categories: ['Utility'],
               },
               scripts: {
-                post: './postinstall.sh', // ✅ Add post-install script
+                post: './linux-postinstall.sh', // ✅ Add post-install script
               },
             },
           },
