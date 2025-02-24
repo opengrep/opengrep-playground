@@ -1,10 +1,10 @@
 <template>
-    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
+    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
         @change="handleCodeChange" />
 </template>
 
 <script setup>
-import { shallowRef, onMounted, onBeforeUnmount } from 'vue';
+import { shallowRef, watch } from 'vue';
 import yaml from 'js-yaml';
 import { store } from '../store'
 
@@ -78,24 +78,15 @@ const languageMappings = {
 
 const editorRef = shallowRef();
 const handleMount = editor => (editorRef.value = editor);
-onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
-});
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
-});
 
-// Function to handle keydown events
-function handleKeyDown(event) {
-    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-    const isSaveShortcut = (isMac && event.metaKey && event.key === 's') || (!isMac && event.ctrlKey && event.key === 's');
-
-    if (isSaveShortcut) {
-        event.preventDefault(); // Prevent the default save dialog
-        const latestCode = editorRef.value.getValue(); // Get the latest value of the editor code
-        emit('update:code', latestCode); // Emit the update:code event with the latest code
+watch(() => store.ruleEditorCode, (newCode) => {
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model && model.getValue() !== newCode) {
+            model.setValue(newCode);
+        }
     }
-}
+});
 
 function handleCodeChange(code) {
     store.languageDetails = getLanguageDetails(code);

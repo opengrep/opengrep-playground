@@ -1,6 +1,6 @@
 <template>
   <div class="inspect-rule">
-    <h2 class="title">Inspect Rule</h2>
+    <h3 class="title">Inspect Rule</h3>
     <TreeView :data="parsedData" @node-hover="handleHover" />
   </div>
 </template>
@@ -143,15 +143,13 @@ function handleHover(debugCodeLocation) {
 
 <style lang="scss" scoped>
 .inspect-rule {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid black;
+ 
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: semi-bold;
   margin-bottom: 12px;
   color: #333;
 }

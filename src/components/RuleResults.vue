@@ -1,8 +1,7 @@
 <template>
     <div class="results-header">
         <h3>Results</h3>
-        <button @click="handleRunBinary" :class="{ 'disabled': !store.ruleEditorCode }"
-            style="align-self: flex-end;">Evaluate</button>
+        <button @click="handleRunBinary" :class="{ 'disabled': !store.ruleEditorCode }">Evaluate</button>
     </div>
 
     <div v-if="isLoading" class="loading-container">
@@ -11,9 +10,9 @@
 
     <div class="results-container" v-else>
         <!-- SCAN RESULTS -->
-        <h2 @click="toggleSection('scanResults')" style="cursor: pointer;">
+        <h4 @click="toggleSection('scanResults')" style="cursor: pointer;">
             Scan Results <span>{{ collapsedSections.scanResults ? '▼' : '▲' }}</span>
-        </h2>
+        </h4>
         <div v-show="!collapsedSections.scanResults" class="scrollable-section">
             <div v-if="store.jsonResult?.scanResults">
                 <div v-for="(run, index) in store.jsonResult.scanResults.runs" :key="run.tool.driver.name"
@@ -47,9 +46,9 @@
         </div>
 
         <!-- TEST RESULTS -->
-        <h2 @click="toggleSection('testResults')" style="cursor: pointer;">
+        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">
             Test Results <span>{{ collapsedSections.testResults ? '▼' : '▲' }}</span>
-        </h2>
+        </h4>
         <div v-show="!collapsedSections.testResults" class="scrollable-section">
             <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
                 <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
@@ -86,6 +85,17 @@ const collapsedSections = ref({
 
 async function handleRunBinary() {
     if (!store.ruleEditorCode) return;
+
+    // add history records
+    store.history.push({
+        editorType: 'code-editor',
+        content: store.codeEditorCode,
+        timestamp: new Date().toLocaleString()
+    }, {
+        editorType: 'rule-editor',
+        content: store.ruleEditorCode,
+        timestamp: new Date().toLocaleString()
+    }); 
 
     try {
         isLoading.value = true;
@@ -163,17 +173,18 @@ function getMatchSatusText(result) {
     justify-content: space-between;
     align-items: center;
 }
+
 .test-results {
     font-family: Arial, sans-serif;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
     grid-gap: 8px;
     white-space: nowrap;
 }
 
 h3 {
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: sem-bold;
 }
 
 .test-file {
@@ -227,8 +238,8 @@ h3 {
 }
 
 .rule-title {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: semi-bold;
 }
 
 .match-info p {
@@ -241,7 +252,7 @@ h3 {
 
 .reported {
     color: #dc3545;
-    font-weight: bold;
+    font-weight: semi-bold;
 }
 
 .error-section {
@@ -262,7 +273,7 @@ button {
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 

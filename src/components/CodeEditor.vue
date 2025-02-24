@@ -36,6 +36,7 @@ const componentState = reactive({
     existingHighlightLinesFromTestResult: [],
     debugLocationCodeDecorations: [],
     exisitingAnnotationZones: [],
+    code: ''
 });
 
 const editorRef = shallowRef(null);
@@ -58,6 +59,14 @@ watch(() => store.languageDetails, (newLanguageDetails) => {
     }
 });
 watch(() => store.codeEditorDebugLocation, (locations) => highlightDebugLocationCode(locations), { deep: true });
+watch(() => store.codeEditorCode, (newCode) => {
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model && model.getValue() !== newCode) {
+            model.setValue(newCode);
+        }
+    }
+}, { deep: true });
 
 
 function determineHighlightCode(scanResults) {

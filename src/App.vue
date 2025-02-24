@@ -2,10 +2,6 @@
   <div class="container">
     <!-- Main Editor Section -->
     <div class="editor">
-      <div class="header">
-        <span class="title">untitled_rule</span>
-      </div>
-
       <!-- Rules Editor -->
       <div class="code-area">
         <div class="column-view">
@@ -33,8 +29,18 @@
         </div>
       </div>
       <!-- Debug Rule Area -->
-      <div class="debug-section">
-        <DebugSection />
+      <div class="meta-section">
+        <DebugSection style="flex: 3" />
+        <!-- HISTORY SECTION -->
+        <div style="flex: 1">
+          <h3>History</h3>
+          <ul class="history-list">
+            <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
+              class="history-entry">
+              <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -46,7 +52,7 @@ import CodeEditor from './components/CodeEditor.vue';
 import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
-import { store } from './store'
+import { store } from './store';
 
 const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
@@ -69,13 +75,14 @@ function handleShowDataFlows(ruleResult) {
 
 async function handleCodeEditorUpdate() {
   try {
-    if(store.ruleEditorCode === '') {
+    if (store.ruleEditorCode === '') {
       return;
     }
 
     const codeSampleFilePath = await joinPath(store.safeDir, `untitled_code.${store.languageDetails?.extension ?? 'txt'}`);
     await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.codeSampleFilePath = codeSampleFilePath;
+
   } catch (error) {
     console.error("Error saving code:", error);
   }
@@ -89,6 +96,15 @@ async function handleRuleEditorUpdate() {
     await handleCodeEditorUpdate();
   } catch (error) {
     console.error("Error saving code:", error);
+  }
+}
+
+function handleHistoryClick(entry) {
+  console.log('clicked')
+  if (entry.editorType === 'code-editor') {
+    store.codeEditorCode = entry.content;
+  } else if (entry.editorType === 'rule-editor') {
+    store.ruleEditorCode = entry.content;
   }
 }
 </script>
@@ -137,11 +153,36 @@ $secondary-color: #2ecc71;
     gap: 12px;
   }
 
-  .debug-section {
+  .meta-section {
     padding: 15px;
     overflow: auto;
     font-family: monospace;
     flex: 1;
+    display: flex;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    gap: 16px;
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .history-entry {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-radius: 4px;
+
+
+        &:hover {
+          background: #e9ecef;
+        }
+      }
+    }
   }
 
   .editor-header {
