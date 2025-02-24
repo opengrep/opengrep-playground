@@ -16,10 +16,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getRootDir: () => ipcRenderer.invoke("get-root-dir"),
 });
 
-contextBridge.exposeInMainWorld("logger", {
-  log: (message) => ipcRenderer.invoke("log", message),
-  error: (message) => ipcRenderer.invoke("error", message),
-  warn: (message) => ipcRenderer.invoke("warn", message),
-});
-
 

@@ -10,34 +10,6 @@ if (started) {
   app.quit();
 }
 
-class Logger {
-  #logFile = '';
-  #isDev = true;
-
-  constructor(logDir, isDev) {
-      this.#logFile = path.join(logDir, 'app.log');
-      this.#isDev = isDev;
-  }
-
-  #writeMessage(message) {
-      const timestamp = new Date().toISOString();
-      const logMessage = `${timestamp} - ${message}\n`;
-      fs.appendFileSync(this.#logFile, logMessage, 'utf8');
-  }
-
-  log(message) {
-      this.#isDev ? console.log(message) : this.#writeMessage(`INFO: ${message}`);
-  }
-
-  warn(message) {
-      this.#isDev ? console.warn(message) : this.#writeMessage(`WARN: ${message}`);
-  }
-
-  error(message) {
-      this.#isDev ? console.error(message) : this.#writeMessage(`ERROR: ${message}`);      
-  }
-}
-
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -67,7 +39,6 @@ const createWindow = () => {
 app.whenReady().then(() => {
   const isDev = !app.isPackaged;
   const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
-  const loggerRef = new Logger(`"${app.getPath('userData')}"`, isDev);
 
 
   // TODO validate if this is necessary
@@ -79,12 +50,12 @@ app.whenReady().then(() => {
       fs.promises.readdir(tempPath).then(files => {
         return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
       }).then(() => {
-        loggerRef.log(`Cleared tmp folder: ${tempPath}`);
+        console.log(`Cleared tmp folder: ${tempPath}`);
       }).catch(err => {
-        loggerRef.error(`Error clearing tmp folder: ${err.message}`);
+        console.error(`Error clearing tmp folder: ${err.message}`);
       });
     } else {
-      loggerRef.log(`Temp folder does not exist: ${tempPath}`);
+      console.log(`Temp folder does not exist: ${tempPath}`);
     }
   }
 
@@ -108,7 +79,7 @@ app.whenReady().then(() => {
   // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
     return new Promise((resolve, reject) => {
-      loggerRef.log("Running binary:", binaryPath, args);
+      console.log("Running binary:", binaryPath, args);
 
       // ✅ Use spawn instead of exec
       const child = spawn(binaryPath, args, { shell: true });
@@ -119,24 +90,24 @@ app.whenReady().then(() => {
       // ✅ Collect stdout data
       child.stdout.on("data", (data) => {
         output += data.toString();
-        loggerRef.log(`stdout: ${data}`);
+        console.log(`stdout: ${data}`);
       });
 
       // ✅ Collect stderr data
       child.stderr.on("data", (data) => {
         errorOutput += data.toString();
-        loggerRef.error(`stderr: ${data}`);
+        console.error(`stderr: ${data}`);
       });
 
       // ✅ Handle process exit
       child.on("close", (code) => {
-        loggerRef.log(`Process exited with code ${code}`);
+        console.log(`Process exited with code ${code}`);
         resolve({ output, errorOutput, exitCode: code });
       });
 
       // ✅ Handle process errors
       child.on("error", (error) => {
-        loggerRef.error(`Error: ${error.message}`);
+        console.error(`Error: ${error.message}`);
         reject(error);
       });
     });
@@ -158,7 +129,7 @@ app.whenReady().then(() => {
     try {
       await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
       await fs.promises.writeFile(filePath, content, options);
-      loggerRef.log(`File written successfully: ${filePath}`);
+      console.log(`File written successfully: ${filePath}`);
       return { success: true };
     } catch (error) {
       return { error: error.message };
@@ -168,7 +139,7 @@ app.whenReady().then(() => {
   ipcMain.handle("remove-file", async (event, filePath) => {
     try {
       await fs.promises.unlink(filePath);
-      loggerRef.log(`File removed successfully: ${filePath}`);
+      console.log(`File removed successfully: ${filePath}`);
       return { success: true };
     } catch (error) {
       return { error: error.message };
@@ -212,16 +183,6 @@ app.whenReady().then(() => {
 
   ipcMain.handle("get-platform", () => {
     return os.platform();
-  });
-
-  ipcMain.handle("log", (event, message) => {
-    loggerRef.log(message);
-  });
-  ipcMain.handle("warn", (event, message) => {
-    loggerRef.warn(message);
-  });
-  ipcMain.handle("error", (event, message) => {
-    loggerRef.warn(message);
   });
 
   createWindow();
