@@ -6,7 +6,7 @@
 <script setup>
 import { shallowRef, watch } from 'vue';
 import yaml from 'js-yaml';
-import { store } from '../store'
+import { store } from '../store';
 
 const emit = defineEmits(['ruleEditorUpdated']);
 const language = 'yaml';
@@ -74,6 +74,7 @@ const languageMappings = {
     react: { ext: "jsx", monaco: "javascript" },
     angular: { ext: "ts", monaco: "typescript" },
     svelte: { ext: "svelte", monaco: "javascript" },
+    android: { ext: "AndroidManifest.xml", monaco: "xml" },
 };
 
 const editorRef = shallowRef();
@@ -108,17 +109,21 @@ function getLanguageDetails(yamlContent) {
         }
 
         // Get the first supported language
-        const primaryLanguage = languages.find(lang => languageMappings[lang]);
+        let primaryLanguage = languages.find(lang => languageMappings[lang]);
 
         if (!primaryLanguage) {
             throw new Error("Unsupported language detected.");
+        }
+        if (primaryLanguage === 'xml' && parsedYaml.rules[0].paths.include.some(path => path.includes('AndroidManifest.xml'))){
+            primaryLanguage = 'android';            
         }
 
         let extension = languageMappings[primaryLanguage].ext;
 
         if(primaryLanguage === 'generic') {
            extension = parsedYaml.rules[0].paths.include[0].split('.').pop()
-        }
+        }        
+
         return {
             extension,
             monacoLanguage: languageMappings[primaryLanguage].monaco

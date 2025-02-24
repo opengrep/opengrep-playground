@@ -24,7 +24,7 @@
         </div>
 
         <!-- Results Viewer -->
-        <div class="column-view" style="flex: 1;">
+        <div class="column-view" style="flex: 1; overflow: hidden;">
           <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
         </div>
       </div>
@@ -100,7 +100,6 @@ async function handleRuleEditorUpdate() {
 }
 
 function handleHistoryClick(entry) {
-  console.log('clicked')
   if (entry.editorType === 'code-editor') {
     store.codeEditorCode = entry.content;
   } else if (entry.editorType === 'rule-editor') {

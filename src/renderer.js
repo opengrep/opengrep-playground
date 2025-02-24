@@ -49,6 +49,7 @@ app.provide('$removeFile', window.electronAPI.removeFile);
 app.provide('$readDir', window.electronAPI.readDir);
 app.provide('$removeDir', window.electronAPI.removeDir);
 app.provide('$runBinary', window.electronAPI.runBinary);
+app.provide('$logger', window.logger);
 
 app.mount('#app');
 

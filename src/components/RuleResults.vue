@@ -4,16 +4,15 @@
         <button @click="handleRunBinary" :class="{ 'disabled': !store.ruleEditorCode }">Evaluate</button>
     </div>
 
-    <div v-if="isLoading" class="loading-container">
-        <div class="loading-circle"></div>
-    </div>
-
-    <div class="results-container" v-else>
+    <div class="results-container">
         <!-- SCAN RESULTS -->
         <h4 @click="toggleSection('scanResults')" style="cursor: pointer;">
             Scan Results <span>{{ collapsedSections.scanResults ? '▼' : '▲' }}</span>
         </h4>
-        <div v-show="!collapsedSections.scanResults" class="scrollable-section">
+        <div v-if="isScanLoading" class="loading-container">
+        <div class="loading-circle"></div>
+    </div>
+        <div v-else v-show="!collapsedSections.scanResults" class="scrollable-section">
             <div v-if="store.jsonResult?.scanResults">
                 <div v-for="(run, index) in store.jsonResult.scanResults.runs" :key="run.tool.driver.name"
                     class="run-card">
@@ -49,7 +48,10 @@
         <h4 @click="toggleSection('testResults')" style="cursor: pointer;">
             Test Results <span>{{ collapsedSections.testResults ? '▼' : '▲' }}</span>
         </h4>
-        <div v-show="!collapsedSections.testResults" class="scrollable-section">
+        <div v-if="isTestLoading" class="loading-container">
+        <div class="loading-circle"></div>
+    </div>
+        <div v-else v-show="!collapsedSections.testResults" class="scrollable-section">
             <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
                 <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
                     :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
@@ -76,7 +78,8 @@ const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
 const getPlatform = inject('$getPlatform');
 
-const isLoading = ref(false);
+const isScanLoading = ref(false);
+const isTestLoading = ref(false);
 const collapsedRuns = ref({});
 const collapsedSections = ref({
     scanResults: false,
@@ -98,8 +101,10 @@ async function handleRunBinary() {
     }); 
 
     try {
-        isLoading.value = true;
+        isScanLoading.value = true;
+        isTestLoading.value = true;
         const platform = await getPlatform();
+        const windowsCliFix = platform === 'win32' ? "-j 1" : "";
 
         // Select correct binary based on OS
         let binaryFileName;
@@ -118,13 +123,13 @@ async function handleRunBinary() {
         console.log("Rules path:", store.ruleFilePath);
         console.log("Code sample path:", store.codeSampleFilePath);
 
-        const [response, testResponse] = await Promise.all([
-            runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/findings.json"`]),
-            runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
-        ]);
-
-        const scanResults = JSON.parse(response.output);
-        const testResults = JSON.parse(testResponse.output);
+        const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/findings.json"`, windowsCliFix]);
+        const scanResults = JSON.parse(scanResponse.output);
+        store.jsonResult = {
+            ...store.jsonResult,
+            scanResults,
+        };
+        isScanLoading.value = false;
 
         // Initialize collapsed state for each result in each run
         scanResults.runs.forEach((run) => {
@@ -133,11 +138,14 @@ async function handleRunBinary() {
             });
         });
 
+        const testResponse = await runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"], windowsCliFix)
+        const testResults = JSON.parse(testResponse.output);
         store.jsonResult = {
             ...store.jsonResult,
-            scanResults,
-            testResults
+            testResults,
         };
+        isTestLoading.value = false;
+
 
         console.log("json result:", store.jsonResult);
     } catch (error) {
@@ -172,6 +180,12 @@ function getMatchSatusText(result) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.results-container{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .test-results {
@@ -330,7 +344,6 @@ button {
 
 /* Scrollable Sections */
 .scrollable-section {
-    max-height: 300px;
     overflow-y: auto;
 }
 </style>

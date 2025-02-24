@@ -6,7 +6,7 @@
 <script setup>
 import { watch, onMounted, onBeforeUnmount, reactive, shallowRef } from 'vue';
 import * as monaco from 'monaco-editor';
-import { store } from '../store'
+import { store } from '../store';
 
 const emit = defineEmits(['codeEditorUpdated']);
 
@@ -91,6 +91,7 @@ function determineHighlightCode(scanResults) {
 function determineHighlightLinesFromTestResult(rawTestResults) {
     // Clear existing decorations
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, []);
+    if (!rawTestResults) return;
 
     let newDecorations = [];
     store.jsonResult.parsedTestResults = [];
@@ -104,7 +105,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
             store.jsonResult.parsedTestResults.push({
                 mustMatch: false,
                 lineNumber: ++lineNumber,
-                rulleId: null,
+                ruleId: null,
                 status: 'SUCCESS'
             });
 
@@ -118,6 +119,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
             });
         }
     }
+
 
     // Extract the matches from the JSON
     Object.entries(rawTestResults.results[store.ruleFilePath].checks).forEach(([ruleId, check]) => {
