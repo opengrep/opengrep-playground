@@ -79,6 +79,18 @@ jobs:
       - name: Build for Linux
         run: npm run make-linux
 
+      - name: Upload Linux DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: out/make/deb/x64/*
+
+      - name: Upload Linux RPM
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-rpm
+          path: out/make/rpm/x64/*
+
       - name: Upload Linux ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -109,6 +121,18 @@ jobs:
         with:
           name: linux-zip
           path: out/make/zip/linux/x64
+      
+      - name: Download Linux DEB
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: out/make/deb/x64
+
+      - name: Download Linux RPM
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-rpm
+          path: out/make/rpm/x64
 
       - name: List Downloaded Files (Debug)
         run: ls -R out/make/

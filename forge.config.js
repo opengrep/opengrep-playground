@@ -3,6 +3,8 @@ const fs = require('fs');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
+const isLinux = process.platform === 'linux';
+
 // ✅ Ensure binaries are executable before packaging
 const binaries = ['bin/opengrep_manylinux_x86']; // Add all necessary binaries here
 binaries.forEach((bin) => {
@@ -27,6 +29,44 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
+    // ✅ Linux DEB and RPM Packages
+    ...(isLinux
+      ? [
+        {
+          name: '@electron-forge/maker-deb',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--deb-user': 'root',
+                '--deb-group': 'root'
+              }
+            },
+            scripts: {
+              post: './linux-postinstall.sh', // ✅ Add post-install script
+            },
+          },
+        },
+        {
+          name: '@electron-forge/maker-rpm',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--rpm-attr': [
+                  '755,root,root:/usr/bin/opengrep-playground',
+                ]
+              }
+            },
+            scripts: {
+              post: './linux-postinstall.sh', // ✅ Add post-install script
+            },
+          },
+        },
+      ]
+      : []),
     // ✅ ZIP for all platforms
     {
       name: '@electron-forge/maker-zip',
