@@ -97,16 +97,18 @@ async function handleRunBinary() {
         isScanLoading.value = true;
         isTestLoading.value = true;
         const platform = await getPlatform();
-        const windowsCliFix = platform === 'win32' ? "-j 1" : "";
+        let windowsCliFix = "";
 
         // Select correct binary based on OS
         let binaryFileName;
         if (platform === 'win32') {
             binaryFileName = 'opengrep_windows_x86.exe';
+            windowsCliFix = "-j 1";
         } else if (platform === 'darwin') {
             binaryFileName = 'opengrep_osx_arm64';
         } else {
-            binaryFileName = 'opengrep_manylinux_x86';
+            const linuxRelease = await readFile('/etc/os-release', 'utf8');
+            binaryFileName = linuxRelease.includes('ID=alpine') ? 'opengrep_musllinux_x86' : 'opengrep_manylinux_x86';
         }
 
         // Construct the full binary path
@@ -233,6 +235,7 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .result-body {

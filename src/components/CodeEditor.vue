@@ -92,7 +92,8 @@ function determineHighlightCode(scanResults) {
 function determineHighlightLinesFromTestResult(rawTestResults) {
     // Clear existing decorations
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, []);
-    if (!rawTestResults) return;
+
+    if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
     let newDecorations = [];
     store.jsonResult.parsedTestResults = [];
