@@ -43,9 +43,9 @@ module.exports = {
                 '--deb-group': 'root'
               }
             },
-            scripts: {
-              post: './linux-postinstall.sh', // ✅ Add post-install script
-            },
+            // scripts: {
+            //   post: './linux-postinstall.sh', // ✅ Add post-install script
+            // },
           },
         },
         {
@@ -60,9 +60,9 @@ module.exports = {
                 ]
               }
             },
-            scripts: {
-              post: './linux-postinstall.sh', // ✅ Add post-install script
-            },
+            // scripts: {
+            //   post: './linux-postinstall.sh', // ✅ Add post-install script
+            // },
           },
         },
       ]
