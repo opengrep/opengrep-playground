@@ -104,6 +104,18 @@ jobs:
           name: macos-zip
           path: out/make/zip/darwin/arm64
 
+      - name: Download Linux DEB
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: out/make/deb/x64
+
+      - name: Download Linux RPM
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-rpm
+          path: out/make/rpm/x64
+
       - name: Download Linux ZIP
         uses: actions/download-artifact@v4
         with:
