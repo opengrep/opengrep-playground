@@ -66,18 +66,8 @@ app.whenReady().then(() => {
 
   app.on('ready', () => {
     clearTempFolder(); // Clear temp files before quitting
-  });
-
-  app.on('will-quit', () => {
-    clearTempFolder(); // Clear temp files before quitting
-  });
-
-  app.on('before-quit', () => {
-    clearTempFolder(); // Ensure cleanup before exiting
-  });
-
-  app.on('quit', () => {
-    clearTempFolder(); // Extra safety cleanup
+    fs.writeFileSync(infoLogPath, '', { flag: 'w' });
+    fs.writeFileSync(infoLogPath, '', { flag: 'w' });
   });
 
 

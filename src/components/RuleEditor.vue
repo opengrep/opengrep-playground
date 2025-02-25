@@ -93,6 +93,7 @@ watch(() => store.ruleEditorCode, (newCode) => {
 function handleCodeChange(code) {
     store.languageDetails = getLanguageDetails(code);
     store.ruleEditorCode = code;
+    store.disableBinaryRun = !store.languageDetails;
     emit('ruleEditorUpdated');
 };
 
@@ -101,19 +102,19 @@ function getLanguageDetails(yamlContent) {
         const parsedYaml = yaml.load(yamlContent);
 
         if (!parsedYaml || !parsedYaml.rules || parsedYaml.rules.length === 0) {
-            throw new Error("Invalid YAML format or missing rules.");
+           return null;
         }
 
-        const languages = parsedYaml.rules[0].languages; // Take the first rule
+        const languages = parsedYaml.rules ? parsedYaml.rules[0]?.languages : []; // Take the first rule
         if (!languages || languages.length === 0) {
-            throw new Error("No languages specified in YAML.");
+           return null
         }
 
         // Get the first supported language
         let primaryLanguage = languages.find(lang => languageMappings[lang]);
 
         if (!primaryLanguage) {
-            throw new Error("Unsupported language detected.");
+            return null;
         }
         if (primaryLanguage === 'xml' && parsedYaml.rules[0].paths.include.some(path => path.includes('AndroidManifest.xml'))){
             primaryLanguage = 'android';            

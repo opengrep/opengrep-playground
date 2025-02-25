@@ -38,7 +38,6 @@ module.exports = {
             options: {
               maintainer: 'Opengrep',
               categories: ['Utility'],
-              arch: ['x86_64', 'arm64'],
               fpmOptions: {
                 '--deb-user': 'root',
                 '--deb-group': 'root'
@@ -52,10 +51,10 @@ module.exports = {
             options: {
               maintainer: 'Opengrep',
               categories: ['Utility'],
-              arch: ['x86_64', 'arm64'],
               fpmOptions: {
                 '--rpm-attr': [
-                  '755,root,root:/usr/bin/opengrep-playground',
+                  '755,root,root:/bin/opengrep_manylinux_x86',
+                  '755,root,root:/bin/opengrep_muslllinux_x86'
                 ]
               }
             },

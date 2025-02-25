@@ -1,7 +1,7 @@
 <template>
     <div class="results-header">
         <h3>Results</h3>
-        <button @click="handleRunBinary" :class="{ 'disabled': !store.ruleEditorCode }">Evaluate</button>
+        <button @click="handleRunBinary" :class="{ 'disabled': store.disableBinaryRun }">Evaluate</button>
     </div>
 
     <div class="results-container">
