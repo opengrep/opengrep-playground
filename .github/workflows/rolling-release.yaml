@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main # Triggers on every push to `main`
-# testing 
   pull_request:
     branches:
       - main
@@ -61,6 +60,9 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: [x64, arm64]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -77,25 +79,25 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm libarchive-tools
 
       - name: Build for Linux
-        run: npm run make-linux
+        run: npm run make-linux -- --arch ${{ matrix.architecture }}
 
       - name: Upload Linux DEB
         uses: actions/upload-artifact@v4
         with:
-          name: linux-deb
-          path: out/make/deb/x64/*
+          name: linux-deb-${{ matrix.architecture }}
+          path: out/make/deb/${{ matrix.architecture }}/*
 
       - name: Upload Linux RPM
         uses: actions/upload-artifact@v4
         with:
-          name: linux-rpm
-          path: out/make/rpm/x64/*
+          name: linux-rpm-${{ matrix.architecture }}
+          path: out/make/rpm/${{ matrix.architecture }}/*
 
       - name: Upload Linux ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: linux-zip
-          path: out/make/zip/linux/x64/*
+          name: linux-zip-${{ matrix.architecture }}
+          path: out/make/zip/linux/${{ matrix.architecture }}/*
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -116,23 +118,41 @@ jobs:
           name: macos-zip
           path: out/make/zip/darwin/arm64
 
-      - name: Download Linux ZIP
+      - name: Download Linux ZIP (x64)
         uses: actions/download-artifact@v4
         with:
-          name: linux-zip
+          name: linux-zip-x64
           path: out/make/zip/linux/x64
       
-      - name: Download Linux DEB
+      - name: Download Linux ZIP (arm64)
         uses: actions/download-artifact@v4
         with:
-          name: linux-deb
+          name: linux-zip-arm64
+          path: out/make/zip/linux/arm64
+      
+      - name: Download Linux DEB (x64)
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb-x64
           path: out/make/deb/x64
 
-      - name: Download Linux RPM
+      - name: Download Linux DEB (arm64)
         uses: actions/download-artifact@v4
         with:
-          name: linux-rpm
+          name: linux-deb-arm64
+          path: out/make/deb/arm64
+
+      - name: Download Linux RPM (x64)
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-rpm-x64
           path: out/make/rpm/x64
+
+      - name: Download Linux RPM (arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-rpm-arm64
+          path: out/make/rpm/arm64
 
       - name: List Downloaded Files (Debug)
         run: ls -R out/make/
@@ -152,7 +172,10 @@ jobs:
             out/make/*.dmg
             out/make/zip/darwin/arm64/*
             out/make/deb/x64/*
+            out/make/deb/arm64/*
             out/make/rpm/x64/*
+            out/make/rpm/arm64/*
             out/make/zip/linux/x64/*
+            out/make/zip/linux/arm64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

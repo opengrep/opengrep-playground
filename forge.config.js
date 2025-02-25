@@ -38,14 +38,12 @@ module.exports = {
             options: {
               maintainer: 'Opengrep',
               categories: ['Utility'],
+              arch: ['x86_64', 'arm64'],
               fpmOptions: {
                 '--deb-user': 'root',
                 '--deb-group': 'root'
               }
             },
-            // scripts: {
-            //   post: './linux-postinstall.sh', // ✅ Add post-install script
-            // },
           },
         },
         {
@@ -54,15 +52,13 @@ module.exports = {
             options: {
               maintainer: 'Opengrep',
               categories: ['Utility'],
+              arch: ['x86_64', 'arm64'],
               fpmOptions: {
                 '--rpm-attr': [
                   '755,root,root:/usr/bin/opengrep-playground',
                 ]
               }
             },
-            // scripts: {
-            //   post: './linux-postinstall.sh', // ✅ Add post-install script
-            // },
           },
         },
       ]

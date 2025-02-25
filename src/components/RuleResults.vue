@@ -107,8 +107,7 @@ async function handleRunBinary() {
         } else if (platform === 'darwin') {
             binaryFileName = 'opengrep_osx_arm64';
         } else {
-            const linuxRelease = await readFile('/etc/os-release', 'utf8');
-            binaryFileName = linuxRelease.includes('ID=alpine') ? 'opengrep_musllinux_x86' : 'opengrep_manylinux_x86';
+            binaryFileName = 'opengrep_manylinux_x86';
         }
 
         // Construct the full binary path
@@ -122,8 +121,8 @@ async function handleRunBinary() {
         const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
         const scanResults = JSON.parse(scanResponse.output);
 
-        if (extractErrors(scanResults).length > 0) {
-            throw extractErrors(scanResults).toString()
+        if (extractScanErrors(scanResults).length > 0) {
+            throw extractScanErrors(scanResults).toString()
         }
 
         store.jsonResult = {
@@ -139,11 +138,11 @@ async function handleRunBinary() {
             });
         });
 
-        const testResponse = await runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json", windowsCliFix])
+        const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
         const testResults = JSON.parse(testResponse.output);
 
-        if (extractErrors(testResults).length > 0) {
-            throw extractErrors(testResults).toString();
+        if (extractTestErrors(testResults).length > 0) {
+            throw extractTestErrors(testResults).toString();
         }
 
         store.jsonResult = {
@@ -177,8 +176,8 @@ function getMatchSatusText(result) {
     return result.mustMatch ? 'Must match' : 'Must not match';
 }
 
-function extractErrors(jsonOutput) {
-    return jsonOutput.runs?.flatMap(run =>
+function extractScanErrors(jsonOutput) {
+   return jsonOutput.runs?.flatMap(run =>
         run.invocations?.flatMap(invocation =>
             invocation.toolExecutionNotifications?.filter(notification =>
                 notification.level === "error" && notification.message?.text
@@ -186,6 +185,10 @@ function extractErrors(jsonOutput) {
         ) || []
     ) || [];
 }
+
+function extractTestErrors(jsonOutput) {
+    return jsonOutput.config_with_errors?.map(configError => configError.error) || [];
+}   
 </script>
 
 <style scoped>
