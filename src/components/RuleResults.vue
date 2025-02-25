@@ -41,7 +41,7 @@
 
         <!-- TEST RESULTS -->
         <h4 @click="toggleSection('testResults')" style="cursor: pointer;">Test Results </h4>
-        <div style="flex: 1" class="scrollable-section">           
+        <div style="flex: 1" class="scrollable-section">
             <div v-if="isTestLoading" class="loading-container">
                 <div class="loading-circle"></div>
             </div>
@@ -72,6 +72,7 @@ const emit = defineEmits(['showDataFlows']);
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
 const getPlatform = inject('$getPlatform');
+const showErrorDialog = inject('$showErrorDialog');
 
 const isScanLoading = ref(false);
 const isTestLoading = ref(false);
@@ -111,12 +112,18 @@ async function handleRunBinary() {
         // Construct the full binary path
         const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
 
+        // todo remove
         console.log("Running binary at path:", binaryPath);
         console.log("Rules path:", store.ruleFilePath);
         console.log("Code sample path:", store.codeSampleFilePath);
 
-        const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/findings.json"`, windowsCliFix]);
+        const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
         const scanResults = JSON.parse(scanResponse.output);
+
+        if (extractErrors(scanResults).length > 0) {
+            throw extractErrors(scanResults).toString()
+        }
+
         store.jsonResult = {
             ...store.jsonResult,
             scanResults,
@@ -132,6 +139,11 @@ async function handleRunBinary() {
 
         const testResponse = await runBinary(`"${binaryPath}"`, ["scan", "--test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json", windowsCliFix])
         const testResults = JSON.parse(testResponse.output);
+
+        if (extractErrors(testResults).length > 0) {
+            throw extractErrors(testResults).toString();
+        }
+
         store.jsonResult = {
             ...store.jsonResult,
             testResults,
@@ -141,7 +153,10 @@ async function handleRunBinary() {
 
         console.log("json result:", store.jsonResult);
     } catch (error) {
-        console.error("Error running binary:", error);
+        isScanLoading.value = false;
+        isTestLoading.value = false;
+        showErrorDialog(`Error running scanning and testing: Please consult the error.log file at ${store.safeDir}`, error);
+        console.error("Error running scanning and testing:", error);
     }
 }
 
@@ -158,6 +173,16 @@ function getMatchSatusText(result) {
         return 'Untested match on';
     }
     return result.mustMatch ? 'Must match' : 'Must not match';
+}
+
+function extractErrors(jsonOutput) {
+    return jsonOutput.runs?.flatMap(run =>
+        run.invocations?.flatMap(invocation =>
+            invocation.toolExecutionNotifications?.filter(notification =>
+                notification.level === "error" && notification.message?.text
+            ).map(notification => notification.message.text)
+        ) || []
+    ) || [];
 }
 </script>
 

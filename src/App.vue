@@ -58,6 +58,7 @@ const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
+const showErrorDialog = inject('$showErrorDialog');
 
 const codeEditor = ref(null);
 const resizingColumn = ref(null);
@@ -67,7 +68,7 @@ const startWidth = ref(0);
 onMounted(async () => {
   store.safeDir = await getSafeDir();
   store.rootDir = await getRootDir();
-  store.findingsPath = await joinPath(store.safeDir, "findings.json");
+  store.findingsPath = await joinPath(store.safeDir, "tmp", "findings.json");
 });
 
 function handleShowDataFlows(ruleResult) {
@@ -82,22 +83,24 @@ async function handleCodeEditorUpdate() {
       return;
     }
 
-    const codeSampleFilePath = await joinPath(store.safeDir, `untitled_code.${store.languageDetails?.extension ?? 'txt'}`);
+    const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${store.languageDetails?.extension ?? 'txt'}`);
     await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.codeSampleFilePath = codeSampleFilePath;
 
   } catch (error) {
+    showErrorDialog(`Error saving code: ${error}`, error);
     console.error("Error saving code:", error);
   }
 }
 
 async function handleRuleEditorUpdate() {
   try {
-    const ruleFilePath = await joinPath(store.safeDir, 'untitled_rule.yaml');
+    const ruleFilePath = await joinPath(store.safeDir, "tmp", 'untitled_rule.yaml');
     await writeFile(ruleFilePath, store.ruleEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.ruleFilePath = ruleFilePath;
     await handleCodeEditorUpdate();
   } catch (error) {
+    showErrorDialog(`Error saving code: ${error}`, error);
     console.error("Error saving code:", error);
   }
 }

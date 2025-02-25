@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { spawn } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -38,23 +38,28 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   const isDev = !app.isPackaged;
-  const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
+  const basePath = isDev ? app.getAppPath() : app.getPath('userData');
+  const errorLogPath = path.join(basePath, 'error.log');
+  const infoLogPath = path.join(basePath, 'info.log');
 
 
   // TODO validate if this is necessary
   // cleanup tmp filee
 
   function clearTempFolder() {
-    const tempPath = basePath; // Change to match your temp folder
+    const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
     if (fs.existsSync(tempPath)) {
       fs.promises.readdir(tempPath).then(files => {
         return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
       }).then(() => {
+        fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}`, { flag: 'w' });
         console.log(`Cleared tmp folder: ${tempPath}`);
       }).catch(err => {
+        fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}`, { flag: 'w' });
         console.error(`Error clearing tmp folder: ${err.message}`);
       });
     } else {
+      fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}`, { flag: 'w' });
       console.log(`Temp folder does not exist: ${tempPath}`);
     }
   }
@@ -79,6 +84,7 @@ app.whenReady().then(() => {
   // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
     return new Promise((resolve, reject) => {
+      fs.writeFileSync(infoLogPath, `Running binary: ${binaryPath} ${args}`, { flag: 'w' });
       console.log("Running binary:", binaryPath, args);
 
       // ✅ Use spawn instead of exec
@@ -90,6 +96,7 @@ app.whenReady().then(() => {
       // ✅ Collect stdout data
       child.stdout.on("data", (data) => {
         output += data.toString();
+        fs.writeFileSync(infoLogPath, `stdout: ${data}`, { flag: 'w' });
         console.log(`stdout: ${data}`);
       });
 
@@ -97,17 +104,23 @@ app.whenReady().then(() => {
       child.stderr.on("data", (data) => {
         errorOutput += data.toString();
         console.error(`stderr: ${data}`);
+        if(data){ 
+          fs.writeFileSync(errorLogPath, `stderr: ${data}`, { flag: 'w' });
+        }
       });
 
       // ✅ Handle process exit
       child.on("close", (code) => {
         console.log(`Process exited with code ${code}`);
+        fs.writeFileSync(infoLogPath, `Process exited with code ${code}`, { flag: 'w' });
         resolve({ output, errorOutput, exitCode: code });
       });
 
       // ✅ Handle process errors
       child.on("error", (error) => {
-        console.error(`Error: ${error.message}`);
+        const message = `Binary Error: ${error.message}`
+        console.error(message);
+        fs.writeFileSync(errorLogPath, message, { flag: 'w' });
         reject(error);
       });
     });
@@ -120,6 +133,7 @@ app.whenReady().then(() => {
       const data = await fs.promises.readFile(filePath, "utf-8");
       return data;
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error reading file: ${error}`, { flag: 'w' });
       return { error: error.message };
     }
   });
@@ -130,8 +144,10 @@ app.whenReady().then(() => {
       await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
       await fs.promises.writeFile(filePath, content, options);
       console.log(`File written successfully: ${filePath}`);
+      fs.writeFileSync(infoLogPath, `File written successfully: ${filePath}`, { flag: 'w' });
       return { success: true };
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error writing file: ${error}`, { flag: 'w' });
       return { error: error.message };
     }
   });
@@ -139,9 +155,11 @@ app.whenReady().then(() => {
   ipcMain.handle("remove-file", async (event, filePath) => {
     try {
       await fs.promises.unlink(filePath);
+      fs.writeFileSync(infoLogPath, `File removed successfully: ${filePath}`, { flag: 'w' });
       console.log(`File removed successfully: ${filePath}`);
       return { success: true };
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error removing file: ${error}`, { flag: 'w' });
       return { error: error.message };
     }
   });
@@ -152,6 +170,8 @@ app.whenReady().then(() => {
       const data = await fs.promises.readdir(path);
       return data;
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error reading directory: ${error}`, { flag: 'w', });
+      console.error(`Error reading directory: ${error}`);
       return { error: error.message };
     }
   });
@@ -160,8 +180,11 @@ app.whenReady().then(() => {
   ipcMain.handle("remove-dir", async (event, path) => {
     try {
       await fs.promises.rm(path, { recursive: true, force: true });
+      fs.writeFileSync(infoLogPath, `Directory removed successfully: ${path}`, { flag: 'w' });
+      console.log(`Directory removed successfully: ${path}`);
       return { success: true };
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error removing directory: ${error}`, { flag: 'w' });
       return { error: error.message };
     }
   });
@@ -183,6 +206,18 @@ app.whenReady().then(() => {
 
   ipcMain.handle("get-platform", () => {
     return os.platform();
+  });
+
+  ipcMain.handle("show-error-dialog", (event, errorMessage, error) => {
+    try{
+      if(!!error) {
+        fs.writeFileSync(errorLogPath, error, { flag: 'w' });
+      }
+      dialog.showErrorBox("Somthing went wrong", errorMessage);
+    } catch(error) {
+      dialog.showErrorBox("Somthing went wrong", error.message);
+      console.error(`Error writing error log: ${error.message}`);
+    }
   });
 
   createWindow();

@@ -4,10 +4,11 @@
 </template>
 
 <script setup>
-import { shallowRef, watch } from 'vue';
+import { shallowRef, watch , inject} from 'vue';
 import yaml from 'js-yaml';
 import { store } from '../store';
 
+const showErrorDialog = inject('$showErrorDialog');
 const emit = defineEmits(['ruleEditorUpdated']);
 const language = 'yaml';
 
@@ -50,7 +51,7 @@ const languageMappings = {
     terraform: { ext: "tf", monaco: "terraform" },
     yaml: { ext: "yaml", monaco: "yaml" },
     yml: { ext: "yml", monaco: "yaml" },
-    scala: { ext: "yml", monaco: "yaml" },
+    scala: { ext: "scala", monaco: "scala" },
     json: { ext: "json", monaco: "json" },
     xml: { ext: "xml", monaco: "xml" },
     sql: { ext: "sql", monaco: "sql" },
@@ -129,6 +130,7 @@ function getLanguageDetails(yamlContent) {
             monacoLanguage: languageMappings[primaryLanguage].monaco
         };
     } catch (error) {
+        showErrorDialog(`Error parsing YAML: ${error}`, error);
         console.error("Error parsing YAML:", error);
         return null;
     }

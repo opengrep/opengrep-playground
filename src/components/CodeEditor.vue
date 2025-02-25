@@ -46,6 +46,7 @@ watch(() => store.jsonResult, (jsonResult) => {
     determineHighlightCode(jsonResult?.scanResults);
     determineHighlightLinesFromTestResult(jsonResult.testResults);
 
+    // todo remove
     console.log("jsonResult", jsonResult);
 });
 watch(() => store.languageDetails, (newLanguageDetails) => {
@@ -183,6 +184,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
         });
     });
 
+    // todo remove
     console.log("new decorations", newDecorations);
     console.log("parsedTestResults", store.jsonResult.parsedTestResults);
 

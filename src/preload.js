@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   joinPath: (...segments) => ipcRenderer.invoke("join-path", ...segments),
   getSafeDir: () => ipcRenderer.invoke("get-safe-dir"),
   getRootDir: () => ipcRenderer.invoke("get-root-dir"),
+  showErrorDialog: (errorMessage, error = null) => ipcRenderer.invoke("show-error-dialog", errorMessage, error),
 });
 
 
