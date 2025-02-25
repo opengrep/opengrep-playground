@@ -6,10 +6,10 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 const isLinux = process.platform === 'linux';
 
 // ✅ Ensure binaries are executable before packaging
-const binaries = ['bin/opengrep_manylinux_x86']; // Add all necessary binaries here
+const binaries = ['bin/opengrep_manylinux_x86', 'bin/opengrep_musllinux_x86']; // Add all necessary binaries here
 binaries.forEach((bin) => {
   const binPath = path.resolve(__dirname, bin);
-  if (fs.existsSync(binPath)) {
+  if (fs.existsSync(binPath) && fs.statSync(binPath).isFile()) {
     fs.chmodSync(binPath, 0o755); // Ensure execute permissions
   }
 });
@@ -19,7 +19,7 @@ module.exports = {
     asar: {
       unpack: '**/bin/**', // Ensure binaries are outside ASAR
     },
-    extraResource: ['bin'], // Include binary folder
+    extraResource: [path.join(__dirname, 'bin')], // Include binary folder
     win32metadata: {
       CompanyName: 'Opengrep',
       FileDescription: 'Opengrep Playground Editor',
@@ -32,35 +32,35 @@ module.exports = {
     // ✅ Linux DEB and RPM Packages
     ...(isLinux
       ? [
-        {
-          name: '@electron-forge/maker-deb',
-          config: {
-            options: {
-              maintainer: 'Opengrep',
-              categories: ['Utility'],
-              fpmOptions: {
-                '--deb-user': 'root',
-                '--deb-group': 'root'
-              }
+          {
+            name: '@electron-forge/maker-deb',
+            config: {
+              options: {
+                maintainer: 'Opengrep',
+                categories: ['Utility'],
+                fpmOptions: {
+                  '--deb-user': 'root',
+                  '--deb-group': 'root',
+                },
+              },
             },
           },
-        },
-        {
-          name: '@electron-forge/maker-rpm',
-          config: {
-            options: {
-              maintainer: 'Opengrep',
-              categories: ['Utility'],
-              fpmOptions: {
-                '--rpm-attr': [
-                  '755,root,root:/bin/opengrep_manylinux_x86',
-                  '755,root,root:/bin/opengrep_muslllinux_x86'
-                ]
-              }
+          {
+            name: '@electron-forge/maker-rpm',
+            config: {
+              options: {
+                maintainer: 'Opengrep',
+                categories: ['Utility'],
+                fpmOptions: {
+                  '--rpm-attr': [
+                    '755,root,root:bin/opengrep_manylinux_x86',
+                    '755,root,root:bin/opengrep_muslllinux_x86',
+                  ],
+                },
+              },
             },
           },
-        },
-      ]
+        ]
       : []),
     // ✅ ZIP for all platforms
     {
