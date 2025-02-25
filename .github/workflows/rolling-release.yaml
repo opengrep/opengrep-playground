@@ -30,18 +30,6 @@ jobs:
       - name: Build for Windows
         run: npm run make-win
 
-      - name: Upload Windows Artifacts (Squirrel)
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-squirrel
-          path: out/make/squirrel.windows/x64/*
-
-      - name: Upload Windows Artifacts (WiX MSI)
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-msi
-          path: out/make/wix/x64/*
-
       - name: Upload Windows Artifacts (ZIP)
         uses: actions/upload-artifact@v4
         with:
@@ -64,12 +52,6 @@ jobs:
 
       - name: Build for macOS
         run: npm run make-mac
-
-      - name: Upload macOS DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-dmg
-          path: out/make/*.dmg  # DMG files are in out/make/
 
       - name: Upload macOS ZIP
         uses: actions/upload-artifact@v4
@@ -97,18 +79,6 @@ jobs:
       - name: Build for Linux
         run: npm run make-linux
 
-      - name: Upload Linux DEB
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-deb
-          path: out/make/deb/x64/*
-
-      - name: Upload Linux RPM
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-rpm
-          path: out/make/rpm/x64/*
-
       - name: Upload Linux ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -122,47 +92,17 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Build (Squirrel)
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-squirrel
-          path: out/make/squirrel.windows/x64
-
-      - name: Download Windows Build (WiX MSI)
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-msi
-          path: out/make/wix/x64
-
       - name: Download Windows Build (ZIP)
         uses: actions/download-artifact@v4
         with:
           name: windows-zip
           path: out/make/zip/win32/x64
 
-      - name: Download macOS DMG
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-dmg
-          path: out/make/
-
       - name: Download macOS ZIP
         uses: actions/download-artifact@v4
         with:
           name: macos-zip
           path: out/make/zip/darwin/arm64
-
-      - name: Download Linux DEB
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-deb
-          path: out/make/deb/x64
-
-      - name: Download Linux RPM
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-rpm
-          path: out/make/rpm/x64
 
       - name: Download Linux ZIP
         uses: actions/download-artifact@v4
