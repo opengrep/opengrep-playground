@@ -2,9 +2,9 @@
 <p align="center">
     <a href="https://github.com/opengrep">
         <picture>
-            <source media="(prefers-color-scheme: light)" srcset="images/opengrep-github-banner.svg">
-            <source media="(prefers-color-scheme: dark)" srcset="images/opengrep-github-banner.svg">
-            <img src="https://raw.githubusercontent.com/opengrep/opengrep/main/images/opengrep-github-banner.svg" width="100%" alt="Opengrep logo"/>
+            <source media="(prefers-color-scheme: light)" srcset="images/opengrep-modern-banner-dark.png">
+            <source media="(prefers-color-scheme: dark)" srcset="images/opengrep-modern-banner-dark.png">
+            <img src="https://raw.githubusercontent.com/opengrep/opengrep-playground/main/images/opengrep-modern-banner-dark.png" width="100%" alt="Opengrep logo"/>
         </picture>
     </a>
 </p>
@@ -13,7 +13,7 @@
 
 _Opengrep is a fork of Semgrep, created by Semgrep Inc. Opengrep is not affiliated with or endorsed by Semgrep Inc._
 
-Opengrep aims to make secure software development a shared standard by providing open and advanced static code analysis for developers and organizations. Initiated by a collective of AppSec organizations, including Aikido.dev, Arnica, Amplify, Endor, Jit, Kodem, Mobb, and Orca Security, Opengrep is open to any individual or organization to leverage and contribute. Join the open roadmap sessions [here](https://lu.ma/opengrep).
+Opengrep aims to make secure software development a shared standard by providing open and advanced static code analysis for developers and organizations. Initiated by a collective of AppSec organizations, including Aikido.dev, Arnica, Amplify, Endor, Jit, Kodem, Mobb, and Orca Security, Opengrep is open to any individual or organization to leverage and contribute.
 
 
 This playground is for testing SAST (Static Application Security Testing) security rules written in YAML with corresponding code snippets in various programming languages.  
