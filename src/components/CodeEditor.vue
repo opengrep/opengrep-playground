@@ -49,17 +49,19 @@ watch(() => store.jsonResult, (jsonResult) => {
     // todo remove
     console.log("jsonResult", jsonResult);
 });
+
 watch(() => store.languageDetails, (newLanguageDetails) => {
-    const language = newLanguageDetails?.monacoLanguage;
+    const language = newLanguageDetails?.monacoLanguage || 'plaintext';
     if (editorRef.value) {
         const model = editorRef.value.getModel();
         if (model) {
-            const languageToUse = language === 'generic' ? 'plaintext' : language;
-            monaco.editor.setModelLanguage(model, languageToUse);
+            monaco.editor.setModelLanguage(model, language === 'generic' ? 'plaintext' : language);
         }
     }
 });
+
 watch(() => store.codeEditorDebugLocation, (locations) => highlightDebugLocationCode(locations), { deep: true });
+
 watch(() => store.codeEditorCode, (newCode) => {
     if (editorRef.value) {
         const model = editorRef.value.getModel();
@@ -93,6 +95,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     // Clear existing decorations
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, []);
 
+    debugger;
     if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
     let newDecorations = [];
@@ -194,32 +197,37 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
 }
 
 function determineCodeFlowInformation(ruleResult) {
-
     editorRef.value.changeViewZones(accessor => {
         // Remove existing annotation zones
         componentState.exisitingAnnotationZones.forEach(zone => accessor.removeZone(zone));
 
         ruleResult?.codeFlows.flatMap(codeFlow => codeFlow.threadFlows || [])
             .flatMap(threadFlow => threadFlow.locations || [])
-            .forEach((location, index) => {
+            .forEach((location, index, locations) => {
+                const annotationIndex = index + 1;  // Increment annotation label (A1, A2, A3, ...)
+
                 const region = location?.location?.physicalLocation?.region;
                 if (!region) return; // Skip if region is invalid
 
-                const codeSnippet = location?.location?.physicalLocation?.region?.snippet?.text || 'Unknown code';
+                const codeSnippet = region?.snippet?.text || 'Unknown code';
 
-                const messages = [
-                    { label: "A1", text: `⨀ taint comes from this source: : `, code: codeSnippet },
-                    { label: "A2", text: `→ taint flows through this intermediate variable: `, code: codeSnippet },
-                    { label: "A3", text: `◉ taint flows to this sink: : `, code: codeSnippet }
-                ];
-                const annotation = messages[index % messages.length];
+                // Generate dynamic annotation message
+                let annotationText;
+                if (annotationIndex === 1) {
+                    annotationText = `⨀ Taint originates from this source: `;
+                } else if (annotationIndex === locations.length) {
+                    annotationText = `◉ Taint flows to this sink: `;
+                } else {
+                    annotationText = `→ Taint flows through this intermediate variable: `;
+                }
 
+                // Add annotation zone
                 componentState.exisitingAnnotationZones.push(accessor.addZone({
-                    afterLineNumber: region.startLine - 1,
-                    heightInPx: 18, // Adjust height
-                    domNode: createAnnotationNode(annotation.label, annotation.text, annotation.code)
+                    afterLineNumber: region.startLine,
+                    heightInPx: 18,
+                    domNode: createAnnotationNode(`A${annotationIndex}`, annotationText, codeSnippet)
                 }));
-            })
+            });
     });
 }
 

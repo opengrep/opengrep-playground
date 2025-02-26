@@ -78,24 +78,18 @@ const isScanLoading = ref(false);
 const isTestLoading = ref(false);
 const collapsedRuns = ref({});
 
-
 async function handleRunBinary() {
     if (!store.ruleEditorCode) return;
 
-    // add history records
-    store.history.push({
-        editorType: 'code-editor',
-        content: store.codeEditorCode,
-        timestamp: new Date().toLocaleString()
-    }, {
-        editorType: 'rule-editor',
-        content: store.ruleEditorCode,
-        timestamp: new Date().toLocaleString()
-    });
-
+    setCodeChangeHistory();
     try {
         isScanLoading.value = true;
         isTestLoading.value = true;
+        store.jsonResult = {
+            scanResults: null,
+            testResults: null,
+            parsedTestResults: []
+        }
         const platform = await getPlatform();
         let windowsCliFix = "";
 
@@ -109,50 +103,11 @@ async function handleRunBinary() {
         } else {
             binaryFileName = 'opengrep_manylinux_x86';
         }
-
         // Construct the full binary path
         const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
+        await runBinaryForScan(binaryPath, windowsCliFix);
+        await runBinaryForTests(binaryPath);
 
-        // todo remove
-        console.log("Running binary at path:", binaryPath);
-        console.log("Rules path:", store.ruleFilePath);
-        console.log("Code sample path:", store.codeSampleFilePath);
-
-        const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
-        const scanResults = JSON.parse(scanResponse.output);
-
-        if (extractScanErrors(scanResults).length > 0) {
-            throw extractScanErrors(scanResults).toString()
-        }
-
-        store.jsonResult = {
-            ...store.jsonResult,
-            scanResults,
-        };
-        isScanLoading.value = false;
-
-        // Initialize collapsed state for each result in each run
-        scanResults.runs.forEach((run) => {
-            run.results.forEach((result, resultIndex) => {
-                collapsedRuns[resultIndex] = false;
-            });
-        });
-
-        const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
-        const testResults = JSON.parse(testResponse.output);
-
-        if (extractTestErrors(testResults).length > 0) {
-            throw extractTestErrors(testResults).toString();
-        }
-
-        store.jsonResult = {
-            ...store.jsonResult,
-            testResults,
-        };
-        isTestLoading.value = false;
-
-
-        console.log("json result:", store.jsonResult);
     } catch (error) {
         isScanLoading.value = false;
         isTestLoading.value = false;
@@ -160,6 +115,76 @@ async function handleRunBinary() {
         console.error("Error running scanning and testing:", error);
     }
 }
+
+function setCodeChangeHistory() {
+    // add history records
+    const latestCodeEntry = store.history.findLast(entry => entry.editorType === 'code-editor');
+    const latestRuleEntry = store.history.findLast(entry => entry.editorType === 'rule-editor');
+
+    if (!latestCodeEntry || latestCodeEntry.content !== store.codeEditorCode) {
+        store.history.push({
+            editorType: 'code-editor',
+            content: store.codeEditorCode,
+            timestamp: new Date().toLocaleString()
+        });
+    }
+
+    if (!latestRuleEntry || latestRuleEntry.content !== store.ruleEditorCode) {
+        store.history.push({
+            editorType: 'rule-editor',
+            content: store.ruleEditorCode,
+            timestamp: new Date().toLocaleString()
+        });
+    }
+}
+
+async function runBinaryForScan(binaryPath, windowsCliFix) {
+    const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
+    const scanResults = JSON.parse(scanResponse.output);
+
+    if (extractScanErrors(scanResults).length > 0) {
+        throw extractScanErrors(scanResults).toString()
+    }
+
+    store.jsonResult = {
+        ...store.jsonResult,
+        scanResults,
+    };
+    isScanLoading.value = false;
+
+    // Initialize collapsed state for each result in each run
+    scanResults.runs.forEach((run) => {
+        run.results.forEach((result, resultIndex) => {
+            collapsedRuns[resultIndex] = false;
+        });
+    });
+}
+
+function extractScanErrors(jsonOutput) {
+    return jsonOutput.runs?.flatMap(run =>
+        run.invocations?.flatMap(invocation =>
+            invocation.toolExecutionNotifications?.filter(notification =>
+                notification.level === "error" && notification.message?.text
+            ).map(notification => notification.message.text)
+        ) || []
+    ) || [];
+}
+
+async function runBinaryForTests(binaryPath) {
+    const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
+        const testResults = JSON.parse(testResponse.output);
+
+        const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];
+        if (extractTestErrors.length > 0) {
+            throw extractTestErrors.toString();
+        }
+
+        store.jsonResult = {
+            ...store.jsonResult,
+            testResults,
+        };
+        isTestLoading.value = false;
+} 
 
 function toggleCollapse(index) {
     collapsedRuns[index] = !collapsedRuns[index];
@@ -174,21 +199,7 @@ function getMatchSatusText(result) {
         return 'Untested match on';
     }
     return result.mustMatch ? 'Must match' : 'Must not match';
-}
-
-function extractScanErrors(jsonOutput) {
-   return jsonOutput.runs?.flatMap(run =>
-        run.invocations?.flatMap(invocation =>
-            invocation.toolExecutionNotifications?.filter(notification =>
-                notification.level === "error" && notification.message?.text
-            ).map(notification => notification.message.text)
-        ) || []
-    ) || [];
-}
-
-function extractTestErrors(jsonOutput) {
-    return jsonOutput.config_with_errors?.map(configError => configError.error) || [];
-}   
+} 
 </script>
 
 <style scoped>

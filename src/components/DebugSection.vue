@@ -27,6 +27,12 @@ async function generateDebuggingInfo() {
   parsedData.value = parseExplanation(explanations);
 }
 
+/**
+ * Parses a list of explanations and constructs a hierarchical structure.
+ *
+ * @param {Array} explanations - The list of explanations to parse.
+ * @returns {Object|null} The root node of the parsed explanations tree, or null if the input is empty.
+ */
 function parseExplanation(explanations) {
   if (!explanations || explanations.length === 0) return null;
 
@@ -35,7 +41,7 @@ function parseExplanation(explanations) {
   explanations.forEach((exp) => {
     let currentNode = {
       name: formatOpName(exp.op),
-      debugMatches: extractUniqueMatches(exp),
+      debugMatches: extractUniqueDebugCodeLocationMatches(exp),
       children: [],
     };
 
@@ -54,27 +60,46 @@ function parseExplanation(explanations) {
   return rootNode;
 }
 
+/**
+ * Processes the taint analysis children nodes and categorizes them into sources, sinks, and sanitizers.
+ *
+ * @param {Array} children - The array of child nodes to process.
+ * @returns {Array} An array containing three nodes: sourcesNode, sinksNode, and sanitizersNode.
+ */
 function processTaintChildren(children) {
-  let sourcesNode = { name: "pattern-sources", debugMatches: [], children: [] };
-  let sinksNode = { name: "pattern-sinks", debugMatches: [], children: [] };
+  const sourcesNode = { name: "pattern-sources", debugMatches: [], children: [] };
+  const sinksNode = { name: "pattern-sinks", debugMatches: [], children: [] };
+  const sanitizersNode = { name: "pattern-sanitizers", debugMatches: [], children: [] };
 
   children.forEach((child) => {
     if (child.op === "TaintSource") {
-      sourcesNode.debugMatches = extractUniqueMatches(child);
+      sourcesNode.debugMatches = extractUniqueDebugCodeLocationMatches(child);
       sourcesNode.children = processChildren(child.children);
     } else if (child.op === "TaintSink") {
       let sinkPatternsNode = {
         name: "patterns",
-        debugMatches: extractUniqueMatches(child),
+        debugMatches: extractUniqueDebugCodeLocationMatches(child),
         children: processChildren(child.children),
       };
       sinksNode.children.push(sinkPatternsNode);
+    } else if (child.op === "TaintSanitizer") {
+      let sanitizerPatternsNode = {
+        name: "patterns",
+        debugMatches: extractUniqueDebugCodeLocationMatches(child),
+        children: processChildren(child.children),
+      };
+      sanitizersNode.children.push(sanitizerPatternsNode);
     }
   });
-
-  return [sourcesNode, sinksNode];
+  return [sourcesNode, sinksNode, sanitizersNode];
 }
 
+/**
+ * Processes a tree of nodes and returns a new tree with formatted node names and unique debug matches.
+ *
+ * @param {Array} children - The array of child nodes to process.
+ * @returns {Array} - The processed array of nodes with formatted names and unique debug matches.
+ */
 function processChildren(children) {
   if (!children) return [];
 
@@ -86,7 +111,7 @@ function processChildren(children) {
 
     let newNode = {
       name: formatOpName(node.op),
-      debugMatches: extractUniqueMatches(node),
+      debugMatches: extractUniqueDebugCodeLocationMatches(node),
       children: [],
     };
 
@@ -100,20 +125,20 @@ function processChildren(children) {
   return result;
 }
 
-function extractUniqueMatches(nodes) {
+function extractUniqueDebugCodeLocationMatches(nodes) {
   if (!nodes.matches || !Array.isArray(nodes.matches)) return null;
 
   return nodes.matches.reduce((acc, match) => {
     if (!acc.some(existingMatch =>
       JSON.stringify(existingMatch.start) === JSON.stringify(match.start) &&
       JSON.stringify(existingMatch.end) === JSON.stringify(match.end))) {
-      acc.push(match);
+      acc.push({
+        start: match.start,
+        end: match.end,
+      });
     }
     return acc;
-  }, []).map(match => ({
-    start: match.start,
-    end: match.end,
-  }));
+  }, [])
 }
 
 function formatOpName(op) {
@@ -130,6 +155,7 @@ function formatOpName(op) {
     "Taint": "taint",
     "TaintSource": "pattern-sources",
     "TaintSink": "pattern-sinks",
+    "TaintSanitizer": "pattern-sanitizers",
   };
 
   return opMapping[op] || op.toLowerCase();
@@ -144,7 +170,7 @@ function handleHover(debugCodeLocation) {
 <style lang="scss" scoped>
 .inspect-rule {
   border-right: 1px solid black;
- 
+
 }
 
 .title {

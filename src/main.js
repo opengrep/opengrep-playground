@@ -41,35 +41,8 @@ app.whenReady().then(() => {
   const basePath = isDev ? app.getAppPath() : app.getPath('userData');
   const errorLogPath = path.join(basePath, 'error.log');
   const infoLogPath = path.join(basePath, 'info.log');
-
-
-  // TODO validate if this is necessary
-  // cleanup tmp filee
-
-  function clearTempFolder() {
-    const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
-    if (fs.existsSync(tempPath)) {
-      fs.promises.readdir(tempPath).then(files => {
-        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
-      }).then(() => {
-        fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}\n\n`, { flag: 'a' });
-        console.log(`Cleared tmp folder: ${tempPath}`);
-      }).catch(err => {
-        fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}\n\n`, { flag: 'a' });
-        console.error(`Error clearing tmp folder: ${err.message}`);
-      });
-    } else {
-      fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}\n\n`, { flag: 'a' });
-      console.log(`Temp folder does not exist: ${tempPath}`);
-    }
-  }
-
-  app.on('ready', () => {
-    clearTempFolder(); // Clear temp files before quitting
-    fs.writeFileSync(infoLogPath, '', { flag: 'w' });
-    fs.writeFileSync(infoLogPath, '', { flag: 'w' });
-  });
-
+  fs.writeFileSync(errorLogPath, '', { flag: 'w' });
+  fs.writeFileSync(infoLogPath, '', { flag: 'w' });
 
   // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
@@ -219,6 +192,15 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+
+  app.on('before-quit', () => {
+    console.log('before-quit');
+    clearTempFolder(basePath, errorLogPath, infoLogPath); // Clear temp files before quitting
+  });
+  app.on('will-quit', () => {
+    console.log('will-quit');
+    clearTempFolder(basePath, errorLogPath, infoLogPath); // Clear temp files before quitting
+  });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -232,3 +214,23 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+// TODO validate if this is necessary
+  // cleanup tmp filee
+  function clearTempFolder(basePath, errorLogPath, infoLogPath) {
+    const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
+    if (fs.existsSync(tempPath)) {
+      fs.promises.readdir(tempPath).then(files => {
+        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
+      }).then(() => {
+        fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}\n\n`, { flag: 'a' });
+        console.log(`Cleared tmp folder: ${tempPath}`);
+      }).catch(err => {
+        fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}\n\n`, { flag: 'a' });
+        console.error(`Error clearing tmp folder: ${err.message}`);
+      });
+    } else {
+      fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}\n\n`, { flag: 'a' });
+      console.log(`Temp folder does not exist: ${tempPath}`);
+    }
+  }
