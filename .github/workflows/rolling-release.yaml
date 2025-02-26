@@ -10,7 +10,8 @@ on:
       - main
 
   workflow_dispatch:
-    version_bump:
+    inputs:
+      version_bump:
         description: "Which version to bump? (major, minor, patch, auto)"
         required: true
         default: "auto"
