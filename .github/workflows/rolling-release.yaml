@@ -157,6 +157,9 @@ jobs:
         id: latest_tag
         run: |
           LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "v1.0.0")
+          if [[ "$LATEST_TAG" == "" || "$LATEST_TAG" == "null" ]]; then
+            LATEST_TAG="v1.0.0"
+          fi
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -183,17 +186,18 @@ jobs:
             if [[ "$VERSION_BUMP" == "auto" ]]; then
               VERSION_BUMP=${{ env.AUTO_BUMP }}
             fi
-
+      
             PRE_RELEASE_TYPE=${{ github.event.inputs.pre_release_type }}
-
-            MAJOR=$(echo $LATEST_TAG | cut -d. -f1 | sed 's/v//')
-            MINOR=$(echo $LATEST_TAG | cut -d. -f2)
-            PATCH=$(echo $LATEST_TAG | cut -d. -f3 | cut -d- -f1)
+      
+            # Extract Major, Minor, Patch
+            MAJOR=$(echo $LATEST_TAG | grep -oE 'v[0-9]+' | grep -oE '[0-9]+' || echo "1")
+            MINOR=$(echo $LATEST_TAG | grep -oE '\.[0-9]+' | head -n1 | tr -d '.' || echo "0")
+            PATCH=$(echo $LATEST_TAG | grep -oE '\.[0-9]+-' | grep -oE '[0-9]+' || echo "0")
             IDENTIFIER=$(echo $LATEST_TAG | grep -oE '[0-9]+$' || echo "0")
-
+      
             PREV_PRE_RELEASE_TYPE=$(echo $LATEST_TAG | grep -oE '(alpha|beta|rc)' || echo "")
-
-            # Handle major, minor, patch bump
+      
+            # Determine the next version number
             case "$VERSION_BUMP" in
               major)
                 MAJOR=$((MAJOR + 1))
@@ -218,8 +222,8 @@ jobs:
                 fi
                 ;;
             esac
-
-            # If pre-release type is set, format it correctly
+      
+            # Construct the new tag
             if [[ -n "$PRE_RELEASE_TYPE" ]]; then
               TAG="v${MAJOR}.${MINOR}.${PATCH}-${PRE_RELEASE_TYPE}.${IDENTIFIER}"
               PRERELEASE=true
@@ -228,7 +232,7 @@ jobs:
               PRERELEASE=false
             fi
           fi
-
+      
           echo "Next TAG: $TAG"
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PRERELEASE=$PRERELEASE" >> $GITHUB_ENV
@@ -238,20 +242,20 @@ jobs:
           echo "Final TAG: ${{ env.TAG }}"
           echo "Pre-release status: ${{ env.PRERELEASE }}"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.TAG }}
-          name: "Release - ${{ env.TAG }}"
-          body: "🚀 This is a rolling release built from the main branch."
-          draft: false
-          prerelease: ${{ env.PRERELEASE }}  # Automatically detect if pre-release
-          files: |
-            out/make/zip/win32/x64/*
-            out/make/*.dmg
-            out/make/zip/darwin/arm64/*
-            out/make/deb/x64/*
-            out/make/rpm/x64/*
-            out/make/zip/linux/x64/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Create GitHub Release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     tag_name: ${{ env.TAG }}
+      #     name: "Rolling Release (Latest from main)"
+      #     body: "🚀 This is a rolling release built from the main branch."
+      #     draft: false
+      #     prerelease: ${{ env.PRERELEASE }}  # Automatically detect if pre-release
+      #     files: |
+      #       out/make/zip/win32/x64/*
+      #       out/make/*.dmg
+      #       out/make/zip/darwin/arm64/*
+      #       out/make/deb/x64/*
+      #       out/make/rpm/x64/*
+      #       out/make/zip/linux/x64/*
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
