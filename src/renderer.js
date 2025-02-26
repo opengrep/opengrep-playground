@@ -27,7 +27,6 @@ app.provide('$showErrorDialog', window.electronAPI.showErrorDialog);
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
-    debugger;
     if (label === "json") {
       return new jsonWorker()
     }

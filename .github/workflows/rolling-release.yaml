@@ -189,13 +189,19 @@ jobs:
       
             PRE_RELEASE_TYPE=${{ github.event.inputs.pre_release_type }}
       
-            # Extract Major, Minor, Patch
-            MAJOR=$(echo $LATEST_TAG | grep -oE 'v[0-9]+' | grep -oE '[0-9]+' || echo "1")
-            MINOR=$(echo $LATEST_TAG | grep -oE '\.[0-9]+' | head -n1 | tr -d '.' || echo "0")
-            PATCH=$(echo $LATEST_TAG | grep -oE '\.[0-9]+-' | grep -oE '[0-9]+' || echo "0")
-            IDENTIFIER=$(echo $LATEST_TAG | grep -oE '[0-9]+$' || echo "0")
+            # Extract major, minor, patch values properly
+            MAJOR=$(echo "$LATEST_TAG" | grep -oP '(?<=v)[0-9]+' || echo "1")
+            MINOR=$(echo "$LATEST_TAG" | grep -oP '(?<=v[0-9]+\.)[0-9]+' || echo "0")
+            PATCH=$(echo "$LATEST_TAG" | grep -oP '(?<=v[0-9]+\.[0-9]+\.)[0-9]+' || echo "0")
+            IDENTIFIER=$(echo "$LATEST_TAG" | grep -oP '[0-9]+$' || echo "0")
       
-            PREV_PRE_RELEASE_TYPE=$(echo $LATEST_TAG | grep -oE '(alpha|beta|rc)' || echo "")
+            PREV_PRE_RELEASE_TYPE=$(echo "$LATEST_TAG" | grep -oE '(alpha|beta|rc)' || echo "")
+      
+            echo "Extracted MAJOR: $MAJOR"
+            echo "Extracted MINOR: $MINOR"
+            echo "Extracted PATCH: $PATCH"
+            echo "Extracted IDENTIFIER: $IDENTIFIER"
+            echo "Previous Pre-release Type: $PREV_PRE_RELEASE_TYPE"
       
             # Determine the next version number
             case "$VERSION_BUMP" in
@@ -223,7 +229,7 @@ jobs:
                 ;;
             esac
       
-            # Construct the new tag
+            # Construct the new tag correctly
             if [[ -n "$PRE_RELEASE_TYPE" ]]; then
               TAG="v${MAJOR}.${MINOR}.${PATCH}-${PRE_RELEASE_TYPE}.${IDENTIFIER}"
               PRERELEASE=true

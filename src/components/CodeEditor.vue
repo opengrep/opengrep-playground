@@ -93,7 +93,6 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     // Clear existing decorations
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, []);
 
-    debugger;
     if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
     let newDecorations = [];
