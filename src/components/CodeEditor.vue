@@ -1,5 +1,5 @@
 <template>
-    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" defaultLanguage="plaintext" @mount="handleMount"
+    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" @mount="handleMount"
         @change="handleCodeChange" />
 </template>
 
@@ -7,6 +7,7 @@
 import { watch, onMounted, onBeforeUnmount, reactive, shallowRef } from 'vue';
 import * as monaco from 'monaco-editor';
 import { store } from '../store';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
 const emit = defineEmits(['codeEditorUpdated']);
 
@@ -45,9 +46,6 @@ const handleMount = editor => (editorRef.value = editor);
 watch(() => store.jsonResult, (jsonResult) => {
     determineHighlightCode(jsonResult?.scanResults);
     determineHighlightLinesFromTestResult(jsonResult.testResults);
-
-    // todo remove
-    console.log("jsonResult", jsonResult);
 });
 
 watch(() => store.languageDetails, (newLanguageDetails) => {

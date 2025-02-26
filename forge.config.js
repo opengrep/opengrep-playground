@@ -5,7 +5,7 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 const isLinux = process.platform === 'linux';
 
-// ✅ Ensure binaries are executable before packaging
+// Ensure binaries are executable before packaging
 const binaries = ['bin/opengrep_manylinux_x86', 'bin/opengrep_musllinux_x86']; // Add all necessary binaries here
 binaries.forEach((bin) => {
   const binPath = path.resolve(__dirname, bin);
@@ -29,7 +29,7 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
-    // ✅ Linux DEB and RPM Packages
+    // Linux DEB and RPM Packages
     ...(isLinux
       ? [
           {
@@ -62,7 +62,7 @@ module.exports = {
           },
         ]
       : []),
-    // ✅ ZIP for all platforms
+    // ZIP for all platforms
     {
       name: '@electron-forge/maker-zip',
       platforms: ['win32', 'darwin', 'linux'],

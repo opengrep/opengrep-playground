@@ -4,7 +4,8 @@
 </template>
 
 <script setup>
-import { shallowRef, watch , inject} from 'vue';
+import { shallowRef, watch, inject } from 'vue';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import yaml from 'js-yaml';
 import { store } from '../store';
 
@@ -98,42 +99,34 @@ function handleCodeChange(code) {
 };
 
 function getLanguageDetails(yamlContent) {
-    try {
-        const parsedYaml = yaml.load(yamlContent);
+    const parsedYaml = yaml.load(yamlContent);
 
-        if (!parsedYaml || !parsedYaml.rules || parsedYaml.rules.length === 0) {
-           return null;
-        }
-
-        const languages = parsedYaml.rules ? parsedYaml.rules[0]?.languages : []; // Take the first rule
-        if (!languages || languages.length === 0) {
-           return null
-        }
-
-        // Get the first supported language
-        let primaryLanguage = languages.find(lang => languageMappings[lang]);
-
-        if (!primaryLanguage) {
-            return null;
-        }
-        if (primaryLanguage === 'xml' && parsedYaml.rules[0].paths.include.some(path => path.includes('AndroidManifest.xml'))){
-            primaryLanguage = 'android';            
-        }
-
-        let extension = languageMappings[primaryLanguage].ext;
-
-        if(primaryLanguage === 'generic') {
-           extension = parsedYaml.rules[0].paths.include[0].split('.').pop()
-        }        
-
-        return {
-            extension,
-            monacoLanguage: languageMappings[primaryLanguage].monaco
-        };
-    } catch (error) {
-        showErrorDialog(`Error parsing YAML: ${error}`, error);
-        console.error("Error parsing YAML:", error);
+    if (!parsedYaml || !parsedYaml.rules || parsedYaml.rules.length === 0) {
         return null;
     }
+
+    const languages = parsedYaml.rules ? parsedYaml.rules[0]?.languages : []; // Take the first rule
+    if (!languages || languages.length === 0) {
+        return null
+    }
+
+    // Get the first supported language
+    let primaryLanguage = languages.find(lang => languageMappings[lang]);
+    if (!primaryLanguage) {
+        return null;
+    }
+    if (primaryLanguage === 'xml' && parsedYaml.rules[0].paths.include.some(path => path.includes('AndroidManifest.xml'))) {
+        primaryLanguage = 'android';
+    }
+
+    let extension = languageMappings[primaryLanguage].ext;
+    if (primaryLanguage === 'generic') {
+        extension = parsedYaml.rules[0].paths.include[0].split('.').pop()
+    }
+
+    return {
+        extension,
+        monacoLanguage: languageMappings[primaryLanguage].monaco
+    };
 }
 </script>

@@ -50,20 +50,19 @@ app.whenReady().then(() => {
       fs.writeFileSync(infoLogPath, `Running binary: ${binaryPath} ${args}\n\n`, { flag: 'a' });
       console.log("Running binary:", binaryPath, args);
 
-      // ✅ Use spawn instead of exec
       const child = spawn(binaryPath, args, { shell: true });
 
       let output = "";
       let errorOutput = "";
 
-      // ✅ Collect stdout data
+      // Collect stdout data
       child.stdout.on("data", (data) => {
         output += data.toString();
         fs.writeFileSync(infoLogPath, `stdout: ${data}\n\n`, { flag: 'a' });
         console.log(`stdout: ${data}`);
       });
 
-      // ✅ Collect stderr data
+      // Collect stderr data
       child.stderr.on("data", (data) => {
         errorOutput += data.toString();
         console.error(`stderr: ${data}`);
@@ -72,14 +71,14 @@ app.whenReady().then(() => {
         }
       });
 
-      // ✅ Handle process exit
+      // Handle process exit
       child.on("close", (code) => {
         console.log(`Process exited with code ${code}`);
         fs.writeFileSync(infoLogPath, `Process exited with code ${code}\n\n`, { flag: 'a' });
         resolve({ output, errorOutput, exitCode: code });
       });
 
-      // ✅ Handle process errors
+      // Handle process errors
       child.on("error", (error) => {
         const message = `Binary Error: ${error.message}`
         console.error(message);

@@ -16,11 +16,11 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.6.1",
     "@electron-forge/maker-deb": "^7.6.1",
+    "@electron-forge/maker-dmg": "^7.6.1",
     "@electron-forge/maker-rpm": "^7.6.1",
     "@electron-forge/maker-squirrel": "^7.6.1",
-    "@electron-forge/maker-zip": "^7.6.1",
     "@electron-forge/maker-wix": "^7.6.1",
-    "@electron-forge/maker-dmg": "^7.6.1",
+    "@electron-forge/maker-zip": "^7.6.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.6.1",
     "@electron-forge/plugin-fuses": "^7.6.1",
     "@electron-forge/plugin-vite": "^7.6.1",
@@ -36,6 +36,7 @@
     "@guolao/vue-monaco-editor": "^1.5.4",
     "electron-squirrel-startup": "^1.0.1",
     "js-yaml": "^4.1.0",
+    "monaco-yaml": "^5.3.1",
     "vue": "^3.5.13"
   }
 }
