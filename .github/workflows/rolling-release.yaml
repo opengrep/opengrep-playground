@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main # Triggers on every push to `main`
-# testing 
-  pull_request:
-    branches:
-      - main
 
   workflow_dispatch:
     inputs:
@@ -17,6 +13,7 @@ on:
         default: "auto"
       pre_release_type:
         description: "Pre-release type (leave empty for stable) [alpha, beta, rc]"
+        default: "alpha"
         required: false
       custom_tag:
         description: "Custom release tag (optional, overrides auto-tagging)"
@@ -248,20 +245,20 @@ jobs:
           echo "Final TAG: ${{ env.TAG }}"
           echo "Pre-release status: ${{ env.PRERELEASE }}"
 
-      # - name: Create GitHub Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ env.TAG }}
-      #     name: "Rolling Release (Latest from main)"
-      #     body: "🚀 This is a rolling release built from the main branch."
-      #     draft: false
-      #     prerelease: ${{ env.PRERELEASE }}  # Automatically detect if pre-release
-      #     files: |
-      #       out/make/zip/win32/x64/*
-      #       out/make/*.dmg
-      #       out/make/zip/darwin/arm64/*
-      #       out/make/deb/x64/*
-      #       out/make/rpm/x64/*
-      #       out/make/zip/linux/x64/*
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Rolling Release (Latest from main)"
+          body: "🚀 This is a rolling release built from the main branch."
+          draft: false
+          prerelease: ${{ env.PRERELEASE }}  # Automatically detect if pre-release
+          files: |
+            out/make/zip/win32/x64/*
+            out/make/*.dmg
+            out/make/zip/darwin/arm64/*
+            out/make/deb/x64/*
+            out/make/rpm/x64/*
+            out/make/zip/linux/x64/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
