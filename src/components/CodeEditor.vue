@@ -185,10 +185,6 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
         });
     });
 
-    // todo remove
-    console.log("new decorations", newDecorations);
-    console.log("parsedTestResults", store.jsonResult.parsedTestResults);
-
     // Apply decorations in Monaco Editor
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, newDecorations);
 }

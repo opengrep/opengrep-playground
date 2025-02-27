@@ -32,9 +32,9 @@ Usage:
 
 Download binaries from the latest alpha [release](https://github.com/opengrep/opengrep-playground/releases).
 
-### MacOS Zip Installation
+### MacOS Zip or dmg Installation
 
-1. Unpack the zip file
+1. Unpack the zip file (Zip download only)
 2. Move the app to the applications folder
 3. Execute the following code in terminal
 
@@ -65,9 +65,3 @@ Download binaries from the latest alpha [release](https://github.com/opengrep/op
     ``` shell
     sudo apt install ./opengrep-playground.deb
     ```
-
-## More
-
-TODO
-<!-- - [Contributing](CONTRIBUTING.md)
-- [License (LGPL-2.1)](LICENSE) -->

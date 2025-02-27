@@ -4,6 +4,7 @@ const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 const isLinux = process.platform === 'linux';
+const isMac = process.platform === 'darwin';
 
 // Ensure binaries are executable before packaging
 const binaries = ['bin/opengrep_manylinux_x86', 'bin/opengrep_musllinux_x86']; // Add all necessary binaries here
@@ -32,35 +33,45 @@ module.exports = {
     // Linux DEB and RPM Packages
     ...(isLinux
       ? [
-          {
-            name: '@electron-forge/maker-deb',
-            config: {
-              options: {
-                maintainer: 'Opengrep',
-                categories: ['Utility'],
-                fpmOptions: {
-                  '--deb-user': 'root',
-                  '--deb-group': 'root',
-                },
+        {
+          name: '@electron-forge/maker-deb',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--deb-user': 'root',
+                '--deb-group': 'root',
               },
             },
           },
-          {
-            name: '@electron-forge/maker-rpm',
-            config: {
-              options: {
-                maintainer: 'Opengrep',
-                categories: ['Utility'],
-                fpmOptions: {
-                  '--rpm-attr': [
-                    '755,root,root:bin/opengrep_manylinux_x86',
-                    '755,root,root:bin/opengrep_muslllinux_x86',
-                  ],
-                },
+        },
+        {
+          name: '@electron-forge/maker-rpm',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--rpm-attr': [
+                  '755,root,root:bin/opengrep_manylinux_x86',
+                  '755,root,root:bin/opengrep_muslllinux_x86',
+                ],
               },
             },
           },
-        ]
+        },
+      ]
+      : []),
+    ...(isMac
+      ? [
+        {
+          name: '@electron-forge/maker-dmg',
+          config: {
+            format: 'ULFO',
+          },
+        },
+      ]
       : []),
     // ZIP for all platforms
     {

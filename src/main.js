@@ -66,7 +66,7 @@ app.whenReady().then(() => {
       child.stderr.on("data", (data) => {
         errorOutput += data.toString();
         console.error(`stderr: ${data}`);
-        if(data){ 
+        if (data) {
           fs.writeFileSync(errorLogPath, `stderr: ${data}\n\n`, { flag: 'a' });
         }
       });
@@ -171,12 +171,12 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("show-error-dialog", (event, errorMessage, error) => {
-    try{
-      if(!!error) {
+    try {
+      if (!!error) {
         fs.writeFileSync(errorLogPath, `${error}\n\n`, { flag: 'a' });
       }
       dialog.showErrorBox("Somthing went wrong", errorMessage);
-    } catch(error) {
+    } catch (error) {
       dialog.showErrorBox("Somthing went wrong", error.message);
       console.error(`Error writing error log: ${error.message}`);
     }
@@ -214,22 +214,21 @@ app.on('window-all-closed', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
-// TODO validate if this is necessary
-  // cleanup tmp filee
-  function clearTempFolder(basePath, errorLogPath, infoLogPath) {
-    const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
-    if (fs.existsSync(tempPath)) {
-      fs.promises.readdir(tempPath).then(files => {
-        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
-      }).then(() => {
-        fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}\n\n`, { flag: 'a' });
-        console.log(`Cleared tmp folder: ${tempPath}`);
-      }).catch(err => {
-        fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}\n\n`, { flag: 'a' });
-        console.error(`Error clearing tmp folder: ${err.message}`);
-      });
-    } else {
-      fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}\n\n`, { flag: 'a' });
-      console.log(`Temp folder does not exist: ${tempPath}`);
-    }
+// cleanup tmp filee
+function clearTempFolder(basePath, errorLogPath, infoLogPath) {
+  const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
+  if (fs.existsSync(tempPath)) {
+    fs.promises.readdir(tempPath).then(files => {
+      return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
+    }).then(() => {
+      fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}\n\n`, { flag: 'a' });
+      console.log(`Cleared tmp folder: ${tempPath}`);
+    }).catch(err => {
+      fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}\n\n`, { flag: 'a' });
+      console.error(`Error clearing tmp folder: ${err.message}`);
+    });
+  } else {
+    fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}\n\n`, { flag: 'a' });
+    console.log(`Temp folder does not exist: ${tempPath}`);
   }
+}
