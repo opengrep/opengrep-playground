@@ -27,9 +27,7 @@ module.exports = {
       OriginalFilename: 'opengrep-playground.exe',
       ProductName: 'Opengrep Playground',
     },
-    packagerConfig: {
-      icon: '/images/icon'
-    }
+    icon: path.join(__dirname, 'images', 'icon')
   },
   rebuildConfig: {},
   makers: [
@@ -46,7 +44,7 @@ module.exports = {
                 '--deb-user': 'root',
                 '--deb-group': 'root',
               },
-              icon: '/images/icon.png'
+              icon: path.join(__dirname, 'images', 'icon.png')
             },
           },
         },
@@ -61,7 +59,7 @@ module.exports = {
                   '755,root,root:bin/opengrep_manylinux_x86',
                   '755,root,root:bin/opengrep_muslllinux_x86',
                 ],
-                icon: '/images/icon.png'
+                icon: path.join(__dirname, 'images', 'icon.png')
               },
             },
           },
@@ -74,7 +72,7 @@ module.exports = {
           name: '@electron-forge/maker-dmg',
           config: {
             format: 'ULFO',
-            icon: '/images/icon.icns'
+            icon: path.join(__dirname, 'images', 'icon.icns')
           },
         },
       ]
