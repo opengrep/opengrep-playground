@@ -1,7 +1,8 @@
 <template>
   <div class="inspect-rule">
     <h3 class="title">Inspect Rule</h3>
-    <TreeView :data="parsedData" @node-hover="handleHover" />
+    <div v-if="!parsedData" class="empty-state">No debugging information available.</div>
+    <TreeView v-else :data="parsedData" @node-hover="handleHover" />
   </div>
 </template>
 
@@ -22,7 +23,7 @@ watch(() => store.jsonResult, () => {
 async function generateDebuggingInfo() {
   const findingsJson = await readFile(store.findingsPath);
   if (!findingsJson) return;
-  
+
   parsedData.value = JSON.parse(findingsJson);
 
   const explanations = parsedData.value.explanations || [];
@@ -180,5 +181,16 @@ function handleHover(debugCodeLocation) {
   font-weight: semi-bold;
   margin-bottom: 12px;
   color: #333;
+}
+
+.empty-state {
+  font-family: monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #7f8c8d;
+  font-size: 14px;
+  font-style: italic;
 }
 </style>

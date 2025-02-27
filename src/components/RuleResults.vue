@@ -14,7 +14,12 @@
                 <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
                     :key="run.tool.driver.name" class="run-card">
 
-                    <div v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
+                    <div v-if ="run.results.length === 0">
+                        <div class="empty-state">
+                            <p>No scan results found.</p>
+                        </div>
+                    </div>
+                    <div v-else v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
                         <div @click="toggleCollapse(resultIndex)"
                             style="display: flex; justify-content: space-between; align-items: center;">
                             <h4>Rule: {{ result.ruleId.split('tmp.').pop() }}</h4>
@@ -47,7 +52,12 @@
             </div>
             <template v-else>
                 <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
-                    <div v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
+                    <div v-if ="store.jsonResult?.parsedTestResults.length === 0">
+                        <div class="empty-state">
+                            <p>No test results found.</p>
+                        </div>
+                    </div>
+                    <div v-else v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
                         :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
                         <p>{{ getMatchSatusText(testResult) }}
                             <span> line {{ testResult.lineNumber }}</span>
@@ -78,7 +88,7 @@ const isScanLoading = ref(false);
 const isTestLoading = ref(false);
 const collapsedRuns = ref({});
 
-async function handleRunBinary(runScanWithoutMatchingExplanations = false) {
+async function handleRunBinary(event, runScanWithoutMatchingExplanations = false) {
     if (!store.ruleEditorCode) return;
 
     setCodeChangeHistory();
@@ -120,7 +130,7 @@ async function handleRunBinary(runScanWithoutMatchingExplanations = false) {
             console.error(message);
 
             // Retry running the binary without matching explanations flag if the engine was killed
-            await handleRunBinary(true);
+            await handleRunBinary(event, true);
             return;
         }
 
@@ -151,8 +161,22 @@ function setCodeChangeHistory() {
     }
 }
 
-async function runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations = false) {
-    const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", !runScanWithoutMatchingExplanations ? "--matching-explanations" : "", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
+async function runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations) {
+    const scanArgs = [
+        "scan",
+        `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
+        "--sarif",
+        "--dataflow-traces",
+        `--json-output="${store.safeDir}/tmp/findings.json"`,
+        windowsCliFix
+    ];
+
+    debugger;
+    if (!runScanWithoutMatchingExplanations) {
+        scanArgs.push("--matching-explanations");
+    }
+
+    const scanResponse = await runBinary(`"${binaryPath}"`, scanArgs);
     const scanResults = JSON.parse(scanResponse.output);
 
     if (extractScanErrors(scanResults).length > 0) {
@@ -388,5 +412,16 @@ button {
 /* Scrollable Sections */
 .scrollable-section {
     overflow-y: auto;
+}
+
+.empty-state {
+    font-family: monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #7f8c8d;
+    font-size: 14px;
+    font-style: italic;
 }
 </style>

@@ -35,7 +35,8 @@
       <!-- HISTORY SECTION -->
       <div style="flex: 1" class="scroll-container">
         <h3>History</h3>
-        <ul class="history-list">
+        <div v-if="store.history.length === 0" class="empty-state">No history records.</div>
+        <ul v-else class="history-list">
           <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
             class="history-entry">
             <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
@@ -252,5 +253,16 @@ $secondary-color: #2ecc71;
 
 .scroll-container {
   overflow-y: auto;
+}
+
+.empty-state {
+    font-family: monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #7f8c8d;
+    font-size: 14px;
+    font-style: italic;
 }
 </style>
