@@ -21,6 +21,8 @@ watch(() => store.jsonResult, () => {
 
 async function generateDebuggingInfo() {
   const findingsJson = await readFile(store.findingsPath);
+  if (!findingsJson) return;
+  
   parsedData.value = JSON.parse(findingsJson);
 
   const explanations = parsedData.value.explanations || [];

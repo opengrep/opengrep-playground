@@ -78,10 +78,11 @@ const isScanLoading = ref(false);
 const isTestLoading = ref(false);
 const collapsedRuns = ref({});
 
-async function handleRunBinary() {
+async function handleRunBinary(runScanWithoutMatchingExplanations = false) {
     if (!store.ruleEditorCode) return;
 
     setCodeChangeHistory();
+
     try {
         isScanLoading.value = true;
         isTestLoading.value = true;
@@ -105,12 +106,24 @@ async function handleRunBinary() {
         }
         // Construct the full binary path
         const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
-        await runBinaryForScan(binaryPath, windowsCliFix);
+
+        await runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations);
         await runBinaryForTests(binaryPath);
 
     } catch (error) {
         isScanLoading.value = false;
         isTestLoading.value = false;
+
+        if (error.includes("the engine was killed")) {
+            const message = 'Rule inspection data retrieval failed.\n Retrying scan without debug information.';
+            showErrorDialog(message);
+            console.error(message);
+
+            // Retry running the binary without matching explanations flag if the engine was killed
+            await handleRunBinary(true);
+            return;
+        }
+
         showErrorDialog(`Error running scanning and testing: Please consult the error.log file at ${store.safeDir}`, error);
         console.error("Error running scanning and testing:", error);
     }
@@ -138,8 +151,8 @@ function setCodeChangeHistory() {
     }
 }
 
-async function runBinaryForScan(binaryPath, windowsCliFix) {
-    const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
+async function runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations = false) {
+    const scanResponse = await runBinary(`"${binaryPath}"`, ["scan", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--sarif", "--dataflow-traces", !runScanWithoutMatchingExplanations ? "--matching-explanations" : "", `--json-output="${store.safeDir}/tmp/findings.json"`, windowsCliFix]);
     const scanResults = JSON.parse(scanResponse.output);
 
     if (extractScanErrors(scanResults).length > 0) {
@@ -172,19 +185,19 @@ function extractScanErrors(jsonOutput) {
 
 async function runBinaryForTests(binaryPath) {
     const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
-        const testResults = JSON.parse(testResponse.output);
+    const testResults = JSON.parse(testResponse.output);
 
-        const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];
-        if (extractTestErrors.length > 0) {
-            throw extractTestErrors.toString();
-        }
+    const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];
+    if (extractTestErrors.length > 0) {
+        throw extractTestErrors.toString();
+    }
 
-        store.jsonResult = {
-            ...store.jsonResult,
-            testResults,
-        };
-        isTestLoading.value = false;
-} 
+    store.jsonResult = {
+        ...store.jsonResult,
+        testResults,
+    };
+    isTestLoading.value = false;
+}
 
 function toggleCollapse(index) {
     collapsedRuns[index] = !collapsedRuns[index];

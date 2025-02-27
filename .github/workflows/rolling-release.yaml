@@ -5,6 +5,11 @@ on:
     branches:
       - main # Triggers on every push to `main`
 
+   # testing 
+  pull_request:
+    branches:
+      - main
+
   workflow_dispatch:
     inputs:
       version_bump:
