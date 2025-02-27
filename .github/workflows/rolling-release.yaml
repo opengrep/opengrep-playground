@@ -1,28 +1,12 @@
-name: Rolling Release Electron App
+name: Rolling Release Opengrep Playground App
 
 on:
-  push:
-    branches:
-      - main # Triggers on every push to `main`
-
-   # testing 
-  pull_request:
-    branches:
-      - main
-
   workflow_dispatch:
     inputs:
-      version_bump:
-        description: "Which version to bump? (major, minor, patch, auto)"
+     tag:
+        description: the tag to use
         required: true
-        default: "auto"
-      pre_release_type:
-        description: "Pre-release type (leave empty for stable) [alpha, beta, rc]"
-        default: "alpha"
-        required: false
-      custom_tag:
-        description: "Custom release tag (optional, overrides auto-tagging)"
-        required: false
+        type: string
 
 permissions:
   contents: write 
@@ -167,109 +151,14 @@ jobs:
       - name: List Downloaded Files (Debug)
         run: ls -R out/make/
 
-      - name: Get Latest Release Tag
-        id: latest_tag
-        run: |
-          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "v1.0.0")
-          if [[ "$LATEST_TAG" == "" || "$LATEST_TAG" == "null" ]]; then
-            LATEST_TAG="v1.0.0"
-          fi
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine Automatic Version Bump (If No Manual Input)
-        if: github.event.inputs.version_bump == 'auto'
-        run: |
-          if git log -1 --pretty=%B | grep -q "BREAKING CHANGE"; then
-            AUTO_BUMP="major"
-          elif git log -1 --pretty=%B | grep -q "feat:"; then
-            AUTO_BUMP="minor"
-          else
-            AUTO_BUMP="patch"
-          fi
-          echo "AUTO_BUMP=$AUTO_BUMP" >> $GITHUB_ENV
-
-      - name: Determine Next Release Tag
-        id: version
-        run: |
-          if [[ -n "${{ github.event.inputs.custom_tag }}" ]]; then
-            TAG=${{ github.event.inputs.custom_tag }}
-          else
-            VERSION_BUMP=${{ github.event.inputs.version_bump }}
-            if [[ "$VERSION_BUMP" == "auto" ]]; then
-              VERSION_BUMP=${{ env.AUTO_BUMP }}
-            fi
-      
-            PRE_RELEASE_TYPE=${{ github.event.inputs.pre_release_type }}
-      
-            # Extract major, minor, patch values properly
-            MAJOR=$(echo "$LATEST_TAG" | grep -oP '(?<=v)[0-9]+' || echo "1")
-            MINOR=$(echo "$LATEST_TAG" | grep -oP '(?<=v[0-9]+\.)[0-9]+' || echo "0")
-            PATCH=$(echo "$LATEST_TAG" | grep -oP '(?<=v[0-9]+\.[0-9]+\.)[0-9]+' || echo "0")
-            IDENTIFIER=$(echo "$LATEST_TAG" | grep -oP '[0-9]+$' || echo "0")
-      
-            PREV_PRE_RELEASE_TYPE=$(echo "$LATEST_TAG" | grep -oE '(alpha|beta|rc)' || echo "")
-      
-            echo "Extracted MAJOR: $MAJOR"
-            echo "Extracted MINOR: $MINOR"
-            echo "Extracted PATCH: $PATCH"
-            echo "Extracted IDENTIFIER: $IDENTIFIER"
-            echo "Previous Pre-release Type: $PREV_PRE_RELEASE_TYPE"
-      
-            # Determine the next version number
-            case "$VERSION_BUMP" in
-              major)
-                MAJOR=$((MAJOR + 1))
-                MINOR=0
-                PATCH=0
-                IDENTIFIER=1
-                ;;
-              minor)
-                MINOR=$((MINOR + 1))
-                PATCH=0
-                IDENTIFIER=1
-                ;;
-              patch)
-                PATCH=$((PATCH + 1))
-                IDENTIFIER=1
-                ;;
-              *)
-                if [[ "$PREV_PRE_RELEASE_TYPE" == "$PRE_RELEASE_TYPE" ]]; then
-                  IDENTIFIER=$((IDENTIFIER + 1))
-                else
-                  IDENTIFIER=1
-                fi
-                ;;
-            esac
-      
-            # Construct the new tag correctly
-            if [[ -n "$PRE_RELEASE_TYPE" ]]; then
-              TAG="v${MAJOR}.${MINOR}.${PATCH}-${PRE_RELEASE_TYPE}.${IDENTIFIER}"
-              PRERELEASE=true
-            else
-              TAG="v${MAJOR}.${MINOR}.${PATCH}"
-              PRERELEASE=false
-            fi
-          fi
-      
-          echo "Next TAG: $TAG"
-          echo "TAG=$TAG" >> $GITHUB_ENV
-          echo "PRERELEASE=$PRERELEASE" >> $GITHUB_ENV
-
-      - name: Debug Print Environment Variables
-        run: |
-          echo "Final TAG: ${{ env.TAG }}"
-          echo "Pre-release status: ${{ env.PRERELEASE }}"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ inputs.tag }}
           name: "Rolling Release (Latest from main)"
           body: "🚀 This is a rolling release built from the main branch."
-          draft: false
-          prerelease: ${{ env.PRERELEASE }}  # Automatically detect if pre-release
+          draft: true
+          prerelease: true
           files: |
             out/make/zip/win32/x64/*
             out/make/*.dmg
