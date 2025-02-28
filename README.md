@@ -65,3 +65,13 @@ Download binaries from the latest alpha [release](https://github.com/opengrep/op
     ``` shell
     sudo apt install ./opengrep-playground.deb
     ```
+
+### Windows zip Installation
+
+1. Unpack the zip file (Zip download only)
+2. Move the app to the applications folder
+3. Execute the following code in terminal
+
+    ``` shell
+    xattr -c "/Applications/opengrep-playground.app/"
+    ```
