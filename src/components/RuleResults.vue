@@ -1,190 +1,270 @@
 <template>
-    <button @click="handleRunBinary">Run Binary</button>
-
-    <div v-if="state.isLoading" class="loading-container">
-        <div class="loading-circle"></div>
+    <div class="results-header">
+        <h3>Results</h3>
+        <button @click="handleRunBinary" :class="{ 'disabled': store.disableBinaryRun }">Evaluate</button>
     </div>
 
-    <div class="results-container" v-else>
-        <div v-if="state.parsedResult">
-            <div v-for="run in state.parsedResult.runs" :key="run.tool.driver.name" class="run-card">
-                <h3>{{ run.tool.driver.name }}</h3>
-                <div v-for="result in run.results" :key="result.ruleId" class="result-card">
-                    <h4>Rule: {{ result.ruleId }}</h4>
-                    <p>{{ result.message.text }}</p>
-                    <div v-for="location in result.locations" :key="location.physicalLocation.artifactLocation.uri"
-                        class="location-card">
-                        <p><strong>Snippet:</strong><br><br> {{ location.physicalLocation.region.snippet.text }}</p>
-                    </div>
-                </div>
+    <div class="results-container">
+        <!-- SCAN RESULTS -->
+        <div style="flex: 2" class="scrollable-section">
+            <div v-if="isScanLoading" class="loading-container">
+                <div class="loading-circle"></div>
             </div>
+            <template v-else>
+                <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
+                    :key="run.tool.driver.name" class="run-card">
 
-            <div class="test-results">
-                <h3>{{ passedTests }} / {{ totalTests }} Tests Passed</h3>
-                <div v-for="(fileResults, filePath) in state.testResults.results" :key="filePath" class="test-file">
-
-                    <div v-for="(check, ruleId) in fileResults.checks" :key="ruleId" class="test-result-card"
-                        :class="{ 'passed': check.passed, 'failed': !check.passed }">
-                        <span class="status-badge" :class="{ 'pass': check.passed, 'fail': !check.passed }">
-                            {{ check.passed ? 'PASS' : 'FAIL' }}
-                        </span>
-
-                        <h4 class="rule-title">Rule: {{ ruleId }}</h4>
-
-                        <div style="display: flex; justify-content: space-between;">
-                            <div v-for="(matches, codePath) in check.matches" :key="codePath" class="match-info">
-                                <p><strong>Expected Lines:</strong>
-                                    <span v-for="(line, index) in matches.expected_lines" :key="line"
-                                        :class="getLineClass(line, matches.reported_lines)">
-                                        {{ ' ' + line }}<span v-if="index < matches.expected_lines.length - 1">, </span>
-                                    </span>
+                    <div v-if ="run.results.length === 0">
+                        <div class="empty-state">
+                            <p>No scan results found.</p>
+                        </div>
+                    </div>
+                    <div v-else v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
+                        <div @click="toggleCollapse(resultIndex)"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4>Rule: {{ result.ruleId.split('tmp.').pop() }}</h4>
+                            <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
+                        </div>
+                        <div class="result-body" v-show="!collapsedRuns[resultIndex]">
+                            <p>{{ result.message.text }}</p>
+                            <div v-for="location in result.locations"
+                                :key="location.physicalLocation.artifactLocation.uri" class="location-card">
+                                <p><strong>Snippet on line {{ location.physicalLocation.region.startLine
+                                        }}:</strong><br><br>{{ location.physicalLocation.region.snippet.text
+                                    }}
                                 </p>
-                                <p><strong>Reported Lines:</strong> {{ matches.reported_lines.join(', ') }}</p>
                             </div>
-
-                            <div v-if="check.errors.length" class="error-section">
-                                <h5>Errors:</h5>
-                                <ul>
-                                    <li v-for="(error, index) in check.errors" :key="index" class="error-message">
-                                        {{ error }}
-                                    </li>
-                                </ul>
-                            </div>
-                            <button class="small" @click="handleShowDataFlows">Show dataflows</button>
+                        </div>
+                        <div class="result-footer" v-if="result.codeFlows?.length > 0">
+                            <button class="small" @click="handleShowDataFlows(result)" style="align-self: center;">Show
+                                dataflows</button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
-        <pre v-else>{{ state.result }}</pre>
+
+        <!-- TEST RESULTS -->
+        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">Test Results </h4>
+        <div style="flex: 1" class="scrollable-section">
+            <div v-if="isTestLoading" class="loading-container">
+                <div class="loading-circle"></div>
+            </div>
+            <template v-else>
+                <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
+                    <div v-if ="store.jsonResult?.parsedTestResults.length === 0">
+                        <div class="empty-state">
+                            <p>No test results found.</p>
+                        </div>
+                    </div>
+                    <div v-else v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"
+                        :class="{ 'passed': testResult.status === 'SUCCESS', 'failed': testResult.status !== 'SUCCESS' }">
+                        <p>{{ getMatchSatusText(testResult) }}
+                            <span> line {{ testResult.lineNumber }}</span>
+                        </p>
+                        <span class="status-badge"
+                            :class="{ 'pass': testResult.status === 'SUCCESS', 'fail': testResult.status !== 'SUCCESS' }">
+                            {{ testResult.status === 'SUCCESS' ? 'PASS' : 'FAIL' }}
+                        </span>
+                    </div>
+                </div>
+            </template>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { inject, defineProps, defineEmits, reactive, watch, computed } from 'vue';
+import { inject, defineEmits, ref } from 'vue';
+import { store } from '../store'
 
-const props = defineProps({
-    language: {
-        type: String,
-        required: true
-    },
-    ruleFile: {
-        type: String,
-        required: true
-    },
-    codeSampleFile: {
-        type: String,
-        required: true
-    }
-});
+const emit = defineEmits(['showDataFlows']);
 
-const emit = defineEmits(['binaryEnded', 'showDataFlows']);
-
-const getSafeDir = inject('$getSafeDir');
-const getRootDir = inject('$getRootDir');
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
 const getPlatform = inject('$getPlatform');
+const showErrorDialog = inject('$showErrorDialog');
 
-const state = reactive({
-    result: '',
-    isLoading: false,
-    parsedResult: null,
-    testResults: [],
-    rulesPath: '',
-    codeSamplePath: '',
-    safeDir: ''
-});
+const isScanLoading = ref(false);
+const isTestLoading = ref(false);
+const collapsedRuns = ref({});
 
-// Compute total & passed tests dynamically
-const totalTests = computed(() => {
-    return Object.values(state.testResults.results || {})
-        .flatMap(fileResults => Object.values(fileResults.checks))
-        .length;
-});
+async function handleRunBinary(event, runScanWithoutMatchingExplanations = false) {
+    if (!store.ruleEditorCode) return;
 
-const passedTests = computed(() => {
-    return Object.values(state.testResults.results || {})
-        .flatMap(fileResults => Object.values(fileResults.checks))
-        .filter(check => check.passed).length;
-});
-
-watch(
-    () => [props.language, props.ruleFile, props.codeSampleFile],
-    async (newValues) => {
-        state.safeDir = await getSafeDir();
-        state.rulesPath = props.ruleFile;
-        state.codeSamplePath = props.codeSampleFile;
-    },
-    { immediate: true }
-);
-
-async function handleRunBinary() {
+    setCodeChangeHistory();
 
     try {
-        state.isLoading = true;
-
-        // Get the correct resources path
-        const rootDir = await getRootDir();
-        
-        console.log("platform:", await getPlatform());
+        isScanLoading.value = true;
+        isTestLoading.value = true;
+        store.jsonResult = {
+            scanResults: null,
+            testResults: null,
+            parsedTestResults: []
+        }
         const platform = await getPlatform();
+        let windowsCliFix = "";
 
         // Select correct binary based on OS
         let binaryFileName;
         if (platform === 'win32') {
-            binaryFileName = 'opengrep_windows.exe';
+            binaryFileName = 'opengrep_windows_x86.exe';
+            windowsCliFix = "-j 1";
         } else if (platform === 'darwin') {
             binaryFileName = 'opengrep_osx_arm64';
         } else {
-            binaryFileName = 'opengrep_linux';
+            binaryFileName = 'opengrep_manylinux_x86';
+        }
+        // Construct the full binary path
+        const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
+
+        await runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations);
+        await runBinaryForTests(binaryPath);
+
+    } catch (error) {
+        isScanLoading.value = false;
+        isTestLoading.value = false;
+
+        if (error.includes("the engine was killed")) {
+            const message = 'Rule inspection data retrieval failed.\n Retrying scan without debug information.';
+            showErrorDialog(message);
+            console.error(message);
+
+            // Retry running the binary without matching explanations flag if the engine was killed
+            await handleRunBinary(event, true);
+            return;
         }
 
-        // Construct the full binary path
-        const binaryPath = await joinPath(rootDir, 'bin', binaryFileName);
-
-        console.log("Running binary at path:", binaryPath);
-        console.log("Rules path:", state.rulesPath);
-        console.log("Code sample path:", state.codeSamplePath);
-
-        const [response, testResponse] = await Promise.all([
-            runBinary(binaryPath, ["scan", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--sarif", "--dataflow-traces", "--matching-explanations", `--json-output="${state.safeDir}/findings.json"`]),
-            runBinary(binaryPath, ["scan", "--test", `-f "${state.rulesPath}" "${state.codeSamplePath}"`, "--dataflow-traces --json"])
-        ]);
-
-        state.result = response.output;
-        state.parsedResult = JSON.parse(response.output);
-        state.testResults = JSON.parse(testResponse.output);
-
-        emit('binaryEnded', {
-            parsedResult: state.parsedResult,
-            testResults: state.testResults
-        });
-    } catch (error) {
-        console.error("Error running binary:", error);
-    } finally {
-        state.isLoading = false;
+        showErrorDialog(`Error running scanning and testing: Please consult the error.log file at ${store.safeDir}`, error);
+        console.error("Error running scanning and testing:", error);
     }
 }
 
-function getLineClass(line, reportedLines) {
-    return reportedLines.includes(line) ? '' : 'reported';
+function setCodeChangeHistory() {
+    // add history records
+    const latestCodeEntry = store.history.findLast(entry => entry.editorType === 'code-editor');
+    const latestRuleEntry = store.history.findLast(entry => entry.editorType === 'rule-editor');
+
+    if (!latestCodeEntry || latestCodeEntry.content !== store.codeEditorCode) {
+        store.history.push({
+            editorType: 'code-editor',
+            content: store.codeEditorCode,
+            timestamp: new Date().toLocaleString()
+        });
+    }
+
+    if (!latestRuleEntry || latestRuleEntry.content !== store.ruleEditorCode) {
+        store.history.push({
+            editorType: 'rule-editor',
+            content: store.ruleEditorCode,
+            timestamp: new Date().toLocaleString()
+        });
+    }
 }
 
-function handleShowDataFlows() {
-    emit('showDataFlows');
+async function runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations) {
+    const scanArgs = [
+        "scan",
+        `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
+        "--sarif",
+        "--dataflow-traces",
+        `--json-output="${store.safeDir}/tmp/findings.json"`,
+        windowsCliFix
+    ];
+
+    debugger;
+    if (!runScanWithoutMatchingExplanations) {
+        scanArgs.push("--matching-explanations");
+    }
+
+    const scanResponse = await runBinary(`"${binaryPath}"`, scanArgs);
+    const scanResults = JSON.parse(scanResponse.output);
+
+    if (extractScanErrors(scanResults).length > 0) {
+        throw extractScanErrors(scanResults).toString()
+    }
+
+    store.jsonResult = {
+        ...store.jsonResult,
+        scanResults,
+    };
+    isScanLoading.value = false;
+
+    // Initialize collapsed state for each result in each run
+    scanResults.runs.forEach((run) => {
+        run.results.forEach((result, resultIndex) => {
+            collapsedRuns[resultIndex] = false;
+        });
+    });
 }
+
+function extractScanErrors(jsonOutput) {
+    return jsonOutput.runs?.flatMap(run =>
+        run.invocations?.flatMap(invocation =>
+            invocation.toolExecutionNotifications?.filter(notification =>
+                notification.level === "error" && notification.message?.text
+            ).map(notification => notification.message.text)
+        ) || []
+    ) || [];
+}
+
+async function runBinaryForTests(binaryPath) {
+    const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
+    const testResults = JSON.parse(testResponse.output);
+
+    const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];
+    if (extractTestErrors.length > 0) {
+        throw extractTestErrors.toString();
+    }
+
+    store.jsonResult = {
+        ...store.jsonResult,
+        testResults,
+    };
+    isTestLoading.value = false;
+}
+
+function toggleCollapse(index) {
+    collapsedRuns[index] = !collapsedRuns[index];
+}
+
+function handleShowDataFlows(result) {
+    emit('showDataFlows', result);
+}
+
+function getMatchSatusText(result) {
+    if (!result.mustMatch && result.status === 'UNTESTED') {
+        return 'Untested match on';
+    }
+    return result.mustMatch ? 'Must match' : 'Must not match';
+} 
 </script>
 
 <style scoped>
-/* General styles */
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.results-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    overflow: hidden;
+    flex: 1;
+}
+
 .test-results {
     font-family: Arial, sans-serif;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-gap: 8px;
+    white-space: nowrap;
 }
 
 h3 {
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: sem-bold;
 }
 
 .test-file {
@@ -195,17 +275,26 @@ h3 {
 .test-result-card,
 .result-card {
     border-radius: 6px;
-    padding: 15px;
-    margin-top: 10px;
+    padding: 8px;
+    margin-top: 8px;
     border: 1px solid #ccc;
     background-color: #f8f8f8;
     position: relative;
 }
 
+.test-result-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.result-body {
+    margin-bottom: 8px;
+}
+
+
 .status-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     padding: 5px 10px;
     border-radius: 5px;
     font-weight: bold;
@@ -230,8 +319,8 @@ h3 {
 }
 
 .rule-title {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: semi-bold;
 }
 
 .match-info p {
@@ -244,7 +333,7 @@ h3 {
 
 .reported {
     color: #dc3545;
-    font-weight: bold;
+    font-weight: semi-bold;
 }
 
 .error-section {
@@ -265,19 +354,23 @@ button {
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 
     &.small {
         padding: 5px 10px;
         height: 50%;
-        align-self: flex-end;
     }
-}
 
-button:hover {
-    background-color: #2980b9;
+    &:hover:not(.disabled) {
+        background-color: #2980b9;
+    }
+
+    &.disabled {
+        background-color: #bdc3c7;
+        cursor: not-allowed;
+    }
 }
 
 /* Loading Spinner */
@@ -305,5 +398,30 @@ button:hover {
     100% {
         transform: rotate(360deg);
     }
+}
+
+.location-card {
+    background-color: #fff;
+    padding: 8px;
+
+    p {
+        overflow-wrap: break-word;
+    }
+}
+
+/* Scrollable Sections */
+.scrollable-section {
+    overflow-y: auto;
+}
+
+.empty-state {
+    font-family: monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #7f8c8d;
+    font-size: 14px;
+    font-style: italic;
 }
 </style>

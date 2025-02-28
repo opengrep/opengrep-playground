@@ -1,9 +1,12 @@
-name: Rolling Release Electron App
+name: Rolling Release Opengrep Playground App
 
 on:
-  push:
-    branches:
-      - main # Triggers on every push to `main`
+  workflow_dispatch:
+    inputs:
+     tag:
+        description: the tag to use
+        required: true
+        type: string
 
 permissions:
   contents: write 
@@ -25,18 +28,6 @@ jobs:
 
       - name: Build for Windows
         run: npm run make-win
-
-      - name: Upload Windows Artifacts (Squirrel)
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-squirrel
-          path: out/make/squirrel.windows/x64/*
-
-      - name: Upload Windows Artifacts (WiX MSI)
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-msi
-          path: out/make/wix/x64/*
 
       - name: Upload Windows Artifacts (ZIP)
         uses: actions/upload-artifact@v4
@@ -65,7 +56,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: out/make/*.dmg  # DMG files are in out/make/
+          path: out/make/*.dmg
 
       - name: Upload macOS ZIP
         uses: actions/upload-artifact@v4
@@ -117,18 +108,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Download Windows Build (Squirrel)
-        uses: actions/download-artifact@v4
         with:
-          name: windows-squirrel
-          path: out/make/squirrel.windows/x64
+          fetch-depth: 0  # Required for commit history analysis
 
-      - name: Download Windows Build (WiX MSI)
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-msi
-          path: out/make/wix/x64
 
       - name: Download Windows Build (ZIP)
         uses: actions/download-artifact@v4
@@ -136,17 +118,17 @@ jobs:
           name: windows-zip
           path: out/make/zip/win32/x64
 
-      - name: Download macOS DMG
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-dmg
-          path: out/make/
-
       - name: Download macOS ZIP
         uses: actions/download-artifact@v4
         with:
           name: macos-zip
           path: out/make/zip/darwin/arm64
+      
+      - name: Download macOS DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: out/make
 
       - name: Download Linux DEB
         uses: actions/download-artifact@v4
@@ -170,16 +152,14 @@ jobs:
         run: ls -R out/make/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "Rolling Release"
-          body: "🚀 This is the latest rolling release built from `main`."
-          draft: false
-          prerelease: false
+          tag_name: ${{ inputs.tag }}
+          name: "Rolling Release (Latest from main)"
+          body: "🚀 This is a rolling release built from the main branch."
+          draft: true
+          prerelease: true
           files: |
-            out/make/squirrel.windows/x64/*
-            out/make/wix/x64/*
             out/make/zip/win32/x64/*
             out/make/*.dmg
             out/make/zip/darwin/arm64/*

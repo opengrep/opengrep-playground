@@ -3,85 +3,81 @@ const fs = require('fs');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
-const isWindows = process.platform === 'win32';
-const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
+const isMac = process.platform === 'darwin';
 
+// Ensure binaries are executable before packaging
+const binaries = ['bin/opengrep_manylinux_x86', 'bin/opengrep_musllinux_x86']; // Add all necessary binaries here
+binaries.forEach((bin) => {
+  const binPath = path.resolve(__dirname, bin);
+  if (fs.existsSync(binPath) && fs.statSync(binPath).isFile()) {
+    fs.chmodSync(binPath, 0o755); // Ensure execute permissions
+  }
+});
 
 module.exports = {
   packagerConfig: {
     asar: {
       unpack: '**/bin/**', // Ensure binaries are outside ASAR
     },
-    extraResource: ['bin'],
+    extraResource: [path.join(__dirname, 'bin')], // Include binary folder
     win32metadata: {
       CompanyName: 'Opengrep',
-      FileDescription: 'Opengrep Playgorund Editor',
+      FileDescription: 'Opengrep Playground Editor',
       OriginalFilename: 'opengrep-playground.exe',
       ProductName: 'Opengrep Playground',
     },
+    icon: path.join(__dirname, 'images', 'icon')
   },
   rebuildConfig: {},
   makers: [
-    // ✅ Linux DEB Package (For Ubuntu/Debian)
+    // Linux DEB and RPM Packages
     ...(isLinux
       ? [
-          {
-            name: '@electron-forge/maker-deb',
-            config: {
-              options: {
-                maintainer: 'Opengrep',
-                homepage: 'https://yourwebsite.com',
-                categories: ['Utility'],
+        {
+          name: '@electron-forge/maker-deb',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--deb-user': 'root',
+                '--deb-group': 'root',
+              },
+              icon: path.join(__dirname, 'images', 'icon.png')
+            },
+          },
+        },
+        {
+          name: '@electron-forge/maker-rpm',
+          config: {
+            options: {
+              maintainer: 'Opengrep',
+              categories: ['Utility'],
+              fpmOptions: {
+                '--rpm-attr': [
+                  '755,root,root:bin/opengrep_manylinux_x86',
+                  '755,root,root:bin/opengrep_muslllinux_x86',
+                ],
+                icon: path.join(__dirname, 'images', 'icon.png')
               },
             },
           },
-          {
-            name: '@electron-forge/maker-rpm',
-            config: {
-              options: {
-                maintainer: 'Opengrep',
-                homepage: 'https://yourwebsite.com',
-                categories: ['Utility'],
-              },
-            },
-          },
-        ]
+        },
+      ]
       : []),
-    // ✅ Windows Installer (Squirrel)
-    ...(isWindows
-      ? [
-          {
-            name: '@electron-forge/maker-squirrel',
-            config: {
-              name: 'opengrep-playground', // Match package.json "name"
-              setupExe: 'opengrep-playground-setup.exe',
-              authors: 'Opengrep',
-              exe: 'opengrep-playground.exe',
-            },
-          },
-          {
-            name: '@electron-forge/maker-wix',
-            config: {
-              language: 1033, // English
-              manufacturer: 'Opengrep',
-              upgradeCode: '', // Use a valid UUID todo
-            },
-          },
-        ]
-      : []),
-    // ✅ macOS - DMG
     ...(isMac
       ? [
-          {
-            name: '@electron-forge/maker-dmg',
-            config: {
-              format: 'ULFO',
-            },
+        {
+          name: '@electron-forge/maker-dmg',
+          config: {
+            format: 'ULFO',
+            icon: path.join(__dirname, 'images', 'icon.icns')
           },
-        ]
+        },
+      ]
       : []),
-    // ✅ macOS & Windows - ZIP (Portable)
+    // ZIP for all platforms
     {
       name: '@electron-forge/maker-zip',
       platforms: ['win32', 'darwin', 'linux'],

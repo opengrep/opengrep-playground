@@ -1,31 +1,15 @@
 <template>
-    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" defaultLanguage="javascript"
-        @mount="handleMount" @change="handleCodeChange" />
+    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" @mount="handleMount"
+        @change="handleCodeChange" />
 </template>
 
 <script setup>
-import { shallowRef, watch, defineExpose, onMounted, onBeforeUnmount, ref } from 'vue';
-import { Range } from 'monaco-editor';
+import { watch, onMounted, onBeforeUnmount, reactive, shallowRef } from 'vue';
+import * as monaco from 'monaco-editor';
+import { store } from '../store';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
-const props = defineProps({
-    language: {
-        type: String,
-        required: true
-    },
-    code: {
-        type: String,
-        required: true
-    },
-    jsonresult: {
-        type: Object,
-        required: false
-    },
-    debugLocation: {
-        type: Object,
-        required: false
-    }
-});
-const emit = defineEmits(['update:code']);
+const emit = defineEmits(['codeEditorUpdated']);
 
 const MONACO_EDITOR_OPTIONS = {
     automaticLayout: true,
@@ -35,104 +19,100 @@ const MONACO_EDITOR_OPTIONS = {
     semanticHighlighting: { enabled: 'configuredByTheme' },
     readOnly: false,
     wordWrap: "on",
-    minimap: { enabled: true },
+    minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: "on",
     scrollBeyondLastLine: false,
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
+    scrollbar: {
+        vertical: 'hidden',
+        horizontal: 'hidden'
+    }
 };
 
-const editorRef = shallowRef();
-const existingHiglightCodeDecorations = ref([]);
-const existingHighlightLinesFromTestResult = ref([]);
-const debugLocationCodeDecorations = ref([]);
-const exisitingAnnotationZones = ref([]);
+const componentState = reactive({
+    existingHiglightCodeDecorations: [],
+    existingHighlightLinesFromTestResult: [],
+    debugLocationCodeDecorations: [],
+    exisitingAnnotationZones: [],
+    code: ''
+});
+
+const editorRef = shallowRef(null);
 const handleMount = editor => (editorRef.value = editor);
 
-watch(() => props.jsonresult, () => {
-    determineHighlightCode();
-    determineHighlightLinesFromTestResult();
+watch(() => store.jsonResult, (jsonResult) => {
+    determineHighlightCode(jsonResult?.scanResults);
+    determineHighlightLinesFromTestResult(jsonResult.testResults);
+});
+
+watch(() => store.languageDetails, (newLanguageDetails) => {
+    const language = newLanguageDetails?.monacoLanguage || 'plaintext';
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model) {
+            monaco.editor.setModelLanguage(model, language === 'generic' ? 'plaintext' : language);
+        }
+    }
+});
+
+watch(() => store.codeEditorDebugLocation, (locations) => highlightDebugLocationCode(locations), { deep: true });
+
+watch(() => store.codeEditorCode, (newCode) => {
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model && model.getValue() !== newCode) {
+            model.setValue(newCode);
+        }
+    }
 }, { deep: true });
 
-watch(() => props.language, () => {
-    editorRef.value?.updateOptions({ language: props.language });
-}, { immediate: true });
 
-function determineHighlightCode() {
+function determineHighlightCode(scanResults) {
     // Clear existing decorations
-    existingHiglightCodeDecorations.value = editorRef.value.deltaDecorations(existingHiglightCodeDecorations.value, []);
+    componentState.existingHiglightCodeDecorations = editorRef.value.deltaDecorations(componentState.existingHiglightCodeDecorations, []);
 
     const newDecorations = [];
 
-    (props.jsonresult?.parsedResult?.runs || []).flatMap(run => run.results || [])
+    (scanResults?.runs || []).flatMap(run => run.results || [])
         .flatMap(result => result.locations || [])
         .forEach(location => {
             const region = location.physicalLocation.region;
             newDecorations.push({
-                range: new Range(region.startLine, region.startColumn, region.endLine, region.endColumn),
+                range: new monaco.Range(region.startLine, region.startColumn, region.endLine, region.endColumn),
                 options: { inlineClassName: "code-highlight" }
             });
         });
 
-        existingHiglightCodeDecorations.value = editorRef.value.deltaDecorations(existingHiglightCodeDecorations.value, newDecorations);
+    componentState.existingHiglightCodeDecorations = editorRef.value.deltaDecorations(componentState.existingHiglightCodeDecorations, newDecorations);
 }
 
-function determineHighlightLinesFromTestResult() {
-     // Clear existing decorations
-     existingHighlightLinesFromTestResult.value = editorRef.value.deltaDecorations(existingHighlightLinesFromTestResult.value, []);
+function determineHighlightLinesFromTestResult(rawTestResults) {
+    // Clear existing decorations
+    componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, []);
 
-     const newDecorations = [];
+    if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
-    // Extract the matches from the JSON
-    Object.values(props.jsonresult?.testResults?.results || {}).forEach(testData => {
-        Object.values(testData.checks || {}).forEach(check => {
-            Object.entries(check.matches || {}).forEach(([, matchData]) => {
-                const { expected_lines = [], reported_lines = [] } = matchData;
-
-                // Convert arrays to sets for easier comparison
-                const expectedSet = new Set(expected_lines);
-                const reportedSet = new Set(reported_lines);
-
-                // Highlight expected lines (Green - should be present)
-                expected_lines.forEach(line => {
-                    newDecorations.push({
-                        range: new Range(line - 1, 1, line - 1, 1),
-                        options: {
-                            isWholeLine: true,
-                            className: reportedSet.has(line) ? "full-line-highlight-added" : "full-line-highlight-removed",
-                            glyphMarginClassName: reportedSet.has(line) ? "diff-added-gutter" : "diff-removed-gutter"
-                        }
-                    });
-                });
-
-                // Highlight reported lines that are not in expected lines (Red - detected issues)
-                reported_lines.forEach(line => {
-                    if (!expectedSet.has(line)) {
-                        newDecorations.push({
-                            range: new Range(line - 1, 1, line - 1, 1),
-                            options: {
-                                isWholeLine: true,
-                                className: "full-line-highlight-removed",
-                                glyphMarginClassName: "diff-removed-gutter"
-                            }
-                        });
-                    }
-                });
-
-            });
-        });
-    });
+    let newDecorations = [];
+    store.jsonResult.parsedTestResults = [];
 
     // Check for comments indicating false positives (//ok or // ok)
     const model = editorRef.value.getModel();
     const linesCount = model.getLineCount();
     for (let lineNumber = 1; lineNumber <= linesCount; lineNumber++) {
         const lineContent = model.getLineContent(lineNumber);
-        if (lineContent.includes('//ok') || lineContent.includes('// ok')) {
+        if (lineContent.includes('ok: ') || lineContent.includes('ruleid: ')) {
+            store.jsonResult.parsedTestResults.push({
+                mustMatch: false,
+                lineNumber: ++lineNumber,
+                ruleId: null,
+                status: 'SUCCESS'
+            });
+
             newDecorations.push({
-                range: new Range(lineNumber, 1, lineNumber, 1),
+                range: new monaco.Range(lineNumber - 1, 1, lineNumber - 1, 1),
                 options: {
                     isWholeLine: true,
                     className: "full-line-highlight-added",
@@ -142,40 +122,105 @@ function determineHighlightLinesFromTestResult() {
         }
     }
 
+
+    // Extract the matches from the JSON
+    Object.entries(rawTestResults.results[store.ruleFilePath].checks).forEach(([ruleId, check]) => {
+        Object.entries(check.matches || {}).forEach(([, matchData]) => {
+            const { expected_lines = [], reported_lines = [] } = matchData;
+
+            // Convert arrays to sets for easier comparison
+            const expectedSet = new Set(expected_lines);
+            const reportedSet = new Set(reported_lines);
+
+            // Highlight expected lines (Green - should be present)
+            expected_lines.forEach((line) => {
+                newDecorations = newDecorations.map(decoration => {
+                    if (decoration.range.startLineNumber === line - 1) {
+                        return {
+                            ...decoration,
+                            options: {
+                                ...decoration.options,
+                                className: reportedSet.has(line) ? "full-line-highlight-added" : "full-line-highlight-removed",
+                                glyphMarginClassName: reportedSet.has(line) ? "diff-added-gutter" : "diff-removed-gutter"
+                            }
+                        }
+                    }
+                    return decoration;
+                });
+
+                store.jsonResult.parsedTestResults = store.jsonResult.parsedTestResults.map(testResult => {
+                    if (testResult.lineNumber === line) {
+                        return {
+                            ...testResult,
+                            mustMatch: reportedSet.has(line),
+                            ruleId,
+                            status: reportedSet.has(line) ? 'SUCCESS' : 'FAILED'
+                        };
+                    }
+
+                    return testResult;
+                });
+            });
+
+            // Highlight reported lines that are not in expected lines (Red - detected issues)
+            reported_lines.forEach(line => {
+                if (!expectedSet.has(line)) {
+                    newDecorations.push({
+                        range: new monaco.Range(line, 1, line, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: "full-line-highlight-unexpected",
+                            glyphMarginClassName: "diff-unexpected-gutter"
+                        }
+                    });
+
+                    store.jsonResult.parsedTestResults.push({
+                        lineNumber: line,
+                        mustMatch: false,
+                        ruleId,
+                        status: 'UNTESTED'
+                    })
+                }
+            });
+        });
+    });
+
     // Apply decorations in Monaco Editor
-    existingHighlightLinesFromTestResult.value = editorRef.value.deltaDecorations(existingHighlightLinesFromTestResult.value, newDecorations);
+    componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, newDecorations);
 }
 
-function determineCodeFlowInformation() {
-    const runs = props.jsonresult?.parsedResult?.runs || [];
-
+function determineCodeFlowInformation(ruleResult) {
     editorRef.value.changeViewZones(accessor => {
         // Remove existing annotation zones
-        exisitingAnnotationZones.value.forEach(zone => accessor.removeZone(zone));
+        componentState.exisitingAnnotationZones.forEach(zone => accessor.removeZone(zone));
 
-        runs.flatMap(run => run.results || [])
-            .flatMap(result => result.codeFlows || [])
-            .flatMap(codeFlow => codeFlow.threadFlows || [])
+        ruleResult?.codeFlows.flatMap(codeFlow => codeFlow.threadFlows || [])
             .flatMap(threadFlow => threadFlow.locations || [])
-            .forEach((location, index) => {
+            .forEach((location, index, locations) => {
+                const annotationIndex = index + 1;  // Increment annotation label (A1, A2, A3, ...)
+
                 const region = location?.location?.physicalLocation?.region;
                 if (!region) return; // Skip if region is invalid
 
-                const codeSnippet = location?.location?.physicalLocation?.region?.snippet?.text || 'Unknown code';
+                const codeSnippet = region?.snippet?.text || 'Unknown code';
 
-                const messages = [
-                    { label: "A1", text: `⨀ taint comes from this source: : `, code: codeSnippet },
-                    { label: "A2", text: `→ taint flows through this intermediate variable: `, code: codeSnippet },
-                    { label: "A3", text: `◉ taint flows to this sink: : `, code: codeSnippet }
-                ];
-                const annotation = messages[index % messages.length];
+                // Generate dynamic annotation message
+                let annotationText;
+                if (annotationIndex === 1) {
+                    annotationText = `⨀ Taint originates from this source: `;
+                } else if (annotationIndex === locations.length) {
+                    annotationText = `◉ Taint flows to this sink: `;
+                } else {
+                    annotationText = `→ Taint flows through this intermediate variable: `;
+                }
 
-                exisitingAnnotationZones.value.push(accessor.addZone({
-                    afterLineNumber: region.startLine - 1,
-                    heightInPx: 18, // Adjust height
-                    domNode: createAnnotationNode(annotation.label, annotation.text, annotation.code)
+                // Add annotation zone
+                componentState.exisitingAnnotationZones.push(accessor.addZone({
+                    afterLineNumber: region.startLine,
+                    heightInPx: 18,
+                    domNode: createAnnotationNode(`A${annotationIndex}`, annotationText, codeSnippet)
                 }));
-            })
+            });
     });
 }
 
@@ -215,14 +260,13 @@ function handleKeyDown(event) {
     if (isSaveShortcut) {
         event.preventDefault(); // Prevent the default save dialog
         const latestCode = editorRef.value.getValue(); // Get the latest value of the editor code
-        emit('update:code', latestCode); // Emit the update:code event with the latest code
+        handleCodeChange(latestCode); // Emit the update:code event with the latest code
     }
 }
 
-function handleCodeChange (code) {
-    setTimeout(() => {
-        emit('update:code', code);
-    }, 1000);
+function handleCodeChange(code) {
+    store.codeEditorCode = code;
+    emit('codeEditorUpdated');
 };
 
 onMounted(() => {
@@ -236,7 +280,7 @@ onBeforeUnmount(() => {
 function highlightDebugLocationCode(locations) {
     if (!locations || !locations.length) {
         // Remove all existing decorations when no locations are provided
-        debugLocationCodeDecorations.value = editorRef.value.deltaDecorations(debugLocationCodeDecorations.value, []);
+        componentState.debugLocationCodeDecorations = editorRef.value.deltaDecorations(componentState.debugLocationCodeDecorations, []);
         return;
     }
 
@@ -247,11 +291,11 @@ function highlightDebugLocationCode(locations) {
     }));
 
     // Apply new decorations while removing the previous ones
-    debugLocationCodeDecorations.value = editorRef.value.deltaDecorations(debugLocationCodeDecorations.value, newDecorations);
+    componentState.debugLocationCodeDecorations = editorRef.value.deltaDecorations(componentState.debugLocationCodeDecorations, newDecorations);
 }
 
 // Expose the determineCodeFlowInformation function to the parent component
-defineExpose({ determineCodeFlowInformation, highlightDebugLocationCode });
+defineExpose({ determineCodeFlowInformation });
 
 </script>
 <style>
@@ -306,6 +350,15 @@ defineExpose({ determineCodeFlowInformation, highlightDebugLocationCode });
     border-radius: 2px;
 }
 
+.diff-unexpected-gutter {
+    background-color: #ffd43b;
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    margin-left: 4px;
+    border-radius: 2px;
+}
+
 /* Full-width highlight for ruleid (Green) */
 .full-line-highlight-added {
     background-color: rgba(198, 255, 198, 0.4) !important;
@@ -318,6 +371,14 @@ defineExpose({ determineCodeFlowInformation, highlightDebugLocationCode });
 /* Full-width highlight for ok (Red) - Adjusted */
 .full-line-highlight-removed {
     background-color: rgba(255, 0, 0, 0.2) !important;
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+}
+
+.full-line-highlight-unexpected {
+    background-color: rgba(255, 212, 59, 0.2) !important;
     position: absolute;
     left: 0;
     right: 0;

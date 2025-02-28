@@ -1,5 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import { spawn, exec } from 'child_process';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { spawn } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
@@ -20,6 +20,7 @@ const createWindow = () => {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
+    icon: path.join(__dirname, 'images', 'icon.png')
   });
 
   // and load the index.html of the app.
@@ -30,84 +31,59 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  if (!app.isPackaged) { mainWindow.webContents.openDevTools(); }
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-
-const isDev = !app.isPackaged;
-const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getPath('userData'), 'tmp');
-
-  // TODO validate if this is necessary
-  // cleanup tmp filee
-
-  function clearTempFolder() {
-    const tempPath = basePath; // Change to match your temp folder
-    if (fs.existsSync(tempPath)) {
-      fs.promises.readdir(tempPath).then(files => {
-        return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
-      }).then(() => {
-        console.log(`Cleared tmp folder: ${tempPath}`);
-      }).catch(err => {
-        console.error(`Error clearing tmp folder: ${err.message}`);
-      });
-    } else {
-      console.log(`Temp folder does not exist: ${tempPath}`);
-    }
-  }
-
-  app.on('ready', () => {
-    clearTempFolder(); // Clear temp files before quitting
-  });
-  
-  app.on('will-quit', () => {
-    clearTempFolder(); // Clear temp files before quitting
-  });
-
-  app.on('before-quit', () => {
-    clearTempFolder(); // Ensure cleanup before exiting
-  });
-
-  app.on('quit', () => {
-    clearTempFolder(); // Extra safety cleanup
-  });
-
+  const isDev = !app.isPackaged;
+  const basePath = isDev ? app.getAppPath() : app.getPath('userData');
+  const errorLogPath = path.join(basePath, 'error.log');
+  const infoLogPath = path.join(basePath, 'info.log');
+  fs.writeFileSync(errorLogPath, '', { flag: 'w' });
+  fs.writeFileSync(infoLogPath, '', { flag: 'w' });
 
   // Handle running binaries from the main process
   ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
     return new Promise((resolve, reject) => {
+      fs.writeFileSync(infoLogPath, `Running binary: ${binaryPath} ${args}\n\n`, { flag: 'a' });
       console.log("Running binary:", binaryPath, args);
 
-      // ✅ Use spawn instead of exec
       const child = spawn(binaryPath, args, { shell: true });
 
       let output = "";
       let errorOutput = "";
 
-      // ✅ Collect stdout data
+      // Collect stdout data
       child.stdout.on("data", (data) => {
         output += data.toString();
+        fs.writeFileSync(infoLogPath, `stdout: ${data}\n\n`, { flag: 'a' });
         console.log(`stdout: ${data}`);
       });
 
-      // ✅ Collect stderr data
+      // Collect stderr data
       child.stderr.on("data", (data) => {
         errorOutput += data.toString();
         console.error(`stderr: ${data}`);
+        if (data) {
+          fs.writeFileSync(errorLogPath, `stderr: ${data}\n\n`, { flag: 'a' });
+        }
       });
 
-      // ✅ Handle process exit
+      // Handle process exit
       child.on("close", (code) => {
         console.log(`Process exited with code ${code}`);
+        fs.writeFileSync(infoLogPath, `Process exited with code ${code}\n\n`, { flag: 'a' });
         resolve({ output, errorOutput, exitCode: code });
       });
 
-      // ✅ Handle process errors
+      // Handle process errors
       child.on("error", (error) => {
-        console.error(`Error: ${error.message}`);
+        const message = `Binary Error: ${error.message}`
+        console.error(message);
+        fs.writeFileSync(errorLogPath, `${message}\n\n`, { flag: 'a' });
         reject(error);
       });
     });
@@ -120,6 +96,7 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
       const data = await fs.promises.readFile(filePath, "utf-8");
       return data;
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error reading file: ${error}\n\n`, { flag: 'a' });
       return { error: error.message };
     }
   });
@@ -127,12 +104,25 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
   // Handle file writing from the main process
   ipcMain.handle("write-file", async (event, filePath, content, options) => {
     try {
-      const t= await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-       console.log('t',t);
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
       await fs.promises.writeFile(filePath, content, options);
       console.log(`File written successfully: ${filePath}`);
+      fs.writeFileSync(infoLogPath, `File written successfully: ${filePath}\n\n`, { flag: 'a' });
       return { success: true };
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error writing file: ${error}\n\n`, { flag: 'a' });
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle("remove-file", async (event, filePath) => {
+    try {
+      await fs.promises.unlink(filePath);
+      fs.writeFileSync(infoLogPath, `File removed successfully: ${filePath}\n\n`, { flag: 'a' });
+      console.log(`File removed successfully: ${filePath}`);
+      return { success: true };
+    } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error removing file: ${error}\n\n`, { flag: 'a' });
       return { error: error.message };
     }
   });
@@ -143,6 +133,8 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
       const data = await fs.promises.readdir(path);
       return data;
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error reading directory: ${error}\n\n`, { flag: 'a', });
+      console.error(`Error reading directory: ${error}`);
       return { error: error.message };
     }
   });
@@ -151,8 +143,11 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
   ipcMain.handle("remove-dir", async (event, path) => {
     try {
       await fs.promises.rm(path, { recursive: true, force: true });
+      fs.writeFileSync(infoLogPath, `Directory removed successfully: ${path}\n\n`, { flag: 'a' });
+      console.log(`Directory removed successfully: ${path}`);
       return { success: true };
     } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error removing directory: ${error}\n\n`, { flag: 'a' });
       return { error: error.message };
     }
   });
@@ -169,11 +164,23 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
 
   // Handle getting the root directory from the main process
   ipcMain.handle("get-root-dir", () => {
-    return app.isPackaged ? process.resourcesPath : app.getAppPath(); 
+    return app.isPackaged ? process.resourcesPath : app.getAppPath();
   });
-  
+
   ipcMain.handle("get-platform", () => {
-    return os.platform(); 
+    return os.platform();
+  });
+
+  ipcMain.handle("show-error-dialog", (event, errorMessage, error) => {
+    try {
+      if (!!error) {
+        fs.writeFileSync(errorLogPath, `${error}\n\n`, { flag: 'a' });
+      }
+      dialog.showErrorBox("Somthing went wrong", errorMessage);
+    } catch (error) {
+      dialog.showErrorBox("Somthing went wrong", error.message);
+      console.error(`Error writing error log: ${error.message}`);
+    }
   });
 
   createWindow();
@@ -184,6 +191,15 @@ const basePath = isDev ? path.join(app.getAppPath(), 'tmp') : path.join(app.getP
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
+  });
+
+  app.on('before-quit', () => {
+    console.log('before-quit');
+    clearTempFolder(basePath, errorLogPath, infoLogPath); // Clear temp files before quitting
+  });
+  app.on('will-quit', () => {
+    console.log('will-quit');
+    clearTempFolder(basePath, errorLogPath, infoLogPath); // Clear temp files before quitting
   });
 });
 
@@ -198,3 +214,22 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+// cleanup tmp filee
+function clearTempFolder(basePath, errorLogPath, infoLogPath) {
+  const tempPath = path.join(basePath, 'tmp'); // Change to match your temp folder
+  if (fs.existsSync(tempPath)) {
+    fs.promises.readdir(tempPath).then(files => {
+      return Promise.all(files.map(file => fs.promises.unlink(path.join(tempPath, file))));
+    }).then(() => {
+      fs.writeFileSync(infoLogPath, `Cleared tmp folder: ${tempPath}\n\n`, { flag: 'a' });
+      console.log(`Cleared tmp folder: ${tempPath}`);
+    }).catch(err => {
+      fs.writeFileSync(errorLogPath, `Error clearing tmp folder: ${err.message}\n\n`, { flag: 'a' });
+      console.error(`Error clearing tmp folder: ${err.message}`);
+    });
+  } else {
+    fs.writeFileSync(infoLogPath, `Temp folder does not exist: ${tempPath}\n\n`, { flag: 'a' });
+    console.log(`Temp folder does not exist: ${tempPath}`);
+  }
+}

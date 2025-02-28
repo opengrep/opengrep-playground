@@ -1,13 +1,16 @@
 <template>
-    <vue-monaco-editor :value="code" :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
+    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
         @change="handleCodeChange" />
 </template>
 
 <script setup>
-import { shallowRef, onMounted, onBeforeUnmount } from 'vue';
+import { shallowRef, watch, inject } from 'vue';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import yaml from 'js-yaml';
+import { store } from '../store';
 
-const emit = defineEmits(['update:code', 'languageDetermined']);
+const showErrorDialog = inject('$showErrorDialog');
+const emit = defineEmits(['ruleEditorUpdated']);
 const language = 'yaml';
 
 const MONACO_EDITOR_OPTIONS = {
@@ -18,13 +21,17 @@ const MONACO_EDITOR_OPTIONS = {
     semanticHighlighting: { enabled: 'configuredByTheme' },
     readOnly: false,
     wordWrap: "on",
-    minimap: { enabled: true },
+    minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: "on",
     scrollBeyondLastLine: false,
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
+    scrollbar: {
+        vertical: 'hidden',
+        horizontal: 'hidden'
+    }
 };
 const languageMappings = {
     js: { ext: "js", monaco: "javascript" },
@@ -41,68 +48,85 @@ const languageMappings = {
     swift: { ext: "swift", monaco: "swift" },
     kotlin: { ext: "kt", monaco: "kotlin" },
     rust: { ext: "rs", monaco: "rust" },
-    csharp: { ext: "cs", monaco: "csharp" }
+    csharp: { ext: "cs", monaco: "csharp" },
+    terraform: { ext: "tf", monaco: "terraform" },
+    yaml: { ext: "yaml", monaco: "yaml" },
+    yml: { ext: "yml", monaco: "yaml" },
+    scala: { ext: "scala", monaco: "scala" },
+    json: { ext: "json", monaco: "json" },
+    xml: { ext: "xml", monaco: "xml" },
+    sql: { ext: "sql", monaco: "sql" },
+    dockerfile: { ext: "dockerfile", monaco: "dockerfile" },
+    plaintext: { ext: "txt", monaco: "plaintext" },
+    dart: { ext: "dart", monaco: "dart" },
+    elixir: { ext: "ex", monaco: "plaintext" },
+    jsp: { ext: "jsp", monaco: "jsp" },
+    html: { ext: "html", monaco: "html" },
+    css: { ext: "css", monaco: "css" },
+    scss: { ext: "scss", monaco: "scss" },
+    less: { ext: "less", monaco: "less" },
+    bash: { ext: "bash", monaco: "shell" },
+    apex: { ext: "cls", monaco: "apex" },
+    closure: { ext: "clj", monaco: "clojure" },
+    libsonnet: { ext: "jsonnet", monaco: "jsonnet" },
+    ocaml: { ext: "ml", monaco: "ocaml" },
+    solidity: { ext: "sol", monaco: "solidity" },
+    generic: { ext: null, monaco: "plaintext" },
+    vue: { ext: "vue", monaco: "javascript" },
+    react: { ext: "jsx", monaco: "javascript" },
+    angular: { ext: "ts", monaco: "typescript" },
+    svelte: { ext: "svelte", monaco: "javascript" },
+    android: { ext: "AndroidManifest.xml", monaco: "xml" },
 };
 
 const editorRef = shallowRef();
 const handleMount = editor => (editorRef.value = editor);
 
-
-// Function to handle keydown events
-function handleKeyDown(event) {
-    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-    const isSaveShortcut = (isMac && event.metaKey && event.key === 's') || (!isMac && event.ctrlKey && event.key === 's');
-
-    if (isSaveShortcut) {
-        event.preventDefault(); // Prevent the default save dialog
-        const latestCode = editorRef.value.getValue(); // Get the latest value of the editor code
-        emit('update:code', latestCode); // Emit the update:code event with the latest code
+watch(() => store.ruleEditorCode, (newCode) => {
+    if (editorRef.value) {
+        const model = editorRef.value.getModel();
+        if (model && model.getValue() !== newCode) {
+            model.setValue(newCode);
+        }
     }
-}
+});
 
 function handleCodeChange(code) {
-    setTimeout(() => {
-        emit('languageDetermined', getLanguageDetails(code));
-        emit('update:code', code);
-    }, 1000);
+    store.languageDetails = getLanguageDetails(code);
+    store.ruleEditorCode = code;
+    store.disableBinaryRun = !store.languageDetails;
+    emit('ruleEditorUpdated');
 };
 
 function getLanguageDetails(yamlContent) {
-    try {
-        const parsedYaml = yaml.load(yamlContent);
+    const parsedYaml = yaml.load(yamlContent);
 
-        if (!parsedYaml || !parsedYaml.rules || parsedYaml.rules.length === 0) {
-            throw new Error("Invalid YAML format or missing rules.");
-        }
-
-        const languages = parsedYaml.rules[0].languages; // Take the first rule
-
-        if (!languages || languages.length === 0) {
-            throw new Error("No languages specified in YAML.");
-        }
-
-        // Get the first supported language
-        const primaryLanguage = languages.find(lang => languageMappings[lang]);
-
-        if (!primaryLanguage) {
-            throw new Error("Unsupported language detected.");
-        }
-
-        return {
-            extension: languageMappings[primaryLanguage].ext,
-            monacoLanguage: languageMappings[primaryLanguage].monaco
-        };
-    } catch (error) {
-        console.error("Error parsing YAML:", error);
+    if (!parsedYaml || !parsedYaml.rules || parsedYaml.rules.length === 0) {
         return null;
     }
+
+    const languages = parsedYaml.rules ? parsedYaml.rules[0]?.languages : []; // Take the first rule
+    if (!languages || languages.length === 0) {
+        return null
+    }
+
+    // Get the first supported language
+    let primaryLanguage = languages.find(lang => languageMappings[lang]);
+    if (!primaryLanguage) {
+        return null;
+    }
+    if (primaryLanguage === 'xml' && parsedYaml.rules[0].paths.include.some(path => path.includes('AndroidManifest.xml'))) {
+        primaryLanguage = 'android';
+    }
+
+    let extension = languageMappings[primaryLanguage].ext;
+    if (primaryLanguage === 'generic') {
+        extension = parsedYaml.rules[0].paths.include[0].split('.').pop()
+    }
+
+    return {
+        extension,
+        monacoLanguage: languageMappings[primaryLanguage].monaco
+    };
 }
-
-onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
-});
 </script>

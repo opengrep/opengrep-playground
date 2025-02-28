@@ -61,7 +61,7 @@ const handleNodeHover = (location) => {
 <style lang="scss" scoped>
 .tree-node {
   margin-left: 16px;
-  font-size: 14px;
+  font-size: 12px;
   color: #444;
 
   .node-header {
