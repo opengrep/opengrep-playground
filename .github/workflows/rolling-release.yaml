@@ -1,6 +1,10 @@
 name: Rolling Release Opengrep Playground App
 
 on:
+  push:
+    branches:
+      - main
+      
   workflow_dispatch:
     inputs:
      tag:
