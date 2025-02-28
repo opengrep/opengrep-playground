@@ -4,7 +4,7 @@
     <div class="code-area">
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Rule Editor</h3>
+          <h3>Rule</h3>
         </div>
         <div class="code-editor-container">
           <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
@@ -15,7 +15,7 @@
       <!-- Code Viewer -->
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Language Editor</h3>
+          <h3>Code to Test</h3>
         </div>
         <div class="code-editor-container">
           <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
