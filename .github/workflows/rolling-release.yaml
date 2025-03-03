@@ -3,11 +3,7 @@ name: Rolling Release Opengrep Playground App
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
-    
+      - main    
       
   workflow_dispatch:
     inputs:
@@ -254,20 +250,20 @@ jobs:
       - name: List Downloaded Files (Debug)
         run: ls -R out/make/
 
-      # - name: Create GitHub Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ inputs.tag }}
-      #     name: "Rolling Release (Latest from main)"
-      #     body: "🚀 This is a rolling release built from the main branch."
-      #     draft: true
-      #     prerelease: true
-      #     files: |
-      #       out/make/zip/win32/x64/*
-      #       out/make/*.dmg
-      #       out/make/zip/darwin/arm64/*
-      #       out/make/deb/x64/*
-      #       out/make/rpm/x64/*
-      #       out/make/zip/linux/x64/*
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: "Rolling Release (Latest from main)"
+          body: "🚀 This is a rolling release built from the main branch."
+          draft: true
+          prerelease: true
+          files: |
+            out/make/zip/win32/x64/*
+            out/make/*.dmg
+            out/make/zip/darwin/arm64/*
+            out/make/deb/x64/*
+            out/make/rpm/x64/*
+            out/make/zip/linux/x64/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
