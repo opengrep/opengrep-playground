@@ -111,6 +111,9 @@ jobs:
         run: |
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
             -R opengrep/opengrep -n opengrep-osx-arm64
+            
+      - name: List Downloaded Artifact
+        run: ls -R
       
       - name: Unzip opengrep-osx-arm64
         run: unzip opengrep-osx-arm64.zip -d opengrep-osx-arm64
