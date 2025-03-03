@@ -9,7 +9,6 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import yaml from 'js-yaml';
 import { store } from '../store';
 
-const showErrorDialog = inject('$showErrorDialog');
 const emit = defineEmits(['ruleEditorUpdated']);
 const language = 'yaml';
 
@@ -28,10 +27,6 @@ const MONACO_EDITOR_OPTIONS = {
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
-    scrollbar: {
-        vertical: 'hidden',
-        horizontal: 'hidden'
-    }
 };
 const languageMappings = {
     js: { ext: "js", monaco: "javascript" },
