@@ -116,7 +116,7 @@ jobs:
         run: ls -R
 
       - name: Unzip opengrep-osx-arm64
-        run: tar -xzf artifacts.tgz -C opengrep-osx-arm64
+        run: mkdir -p opengrep-osx-arm64 && tar -xzf artifacts.tgz -C opengrep-osx-arm64
 
       - name: List Unzipped Artifact
         run: ls -R opengrep-osx-arm64
