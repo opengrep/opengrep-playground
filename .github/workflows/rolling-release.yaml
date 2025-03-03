@@ -30,6 +30,41 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Run Prebuild Script
+        run: node prebuild.js windows
+      
+      - name: Authenticate GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Get Latest Successful Run ID
+        id: get-run-id
+        run: |
+          # Fetch the latest successful run ID for the workflow
+          RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Output Run ID
+        run: |
+          echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
+
+      - name: Download Artifact
+        run: |
+          gh run download ${{ steps.get-run-id.outputs.run_id }} \
+            -R opengrep/opengrep -n opengrep-core-x86
+      
+      - name: Unzip opengrep-core-x86
+        run: unzip opengrep-core-x86.zip -d opengrep-core-x86
+
+      - name: Move content to bin/windows
+        run: mkdir -p bin/windows && mv opengrep-core-x86/* bin/windows/
+
+      - name: Rename opengrep to opengrep-cli
+        run: mv bin/windows/opengrep bin/windows/opengrep-cli
+
+      - name: Show Contents of bin/windows
+        run: ls -R bin/windows
+
       - name: Build for Windows
         run: npm run make-win
 
@@ -52,6 +87,38 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Authenticate GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Get Latest Successful Run ID
+        id: get-run-id
+        run: |
+          # Fetch the latest successful run ID for the workflow
+          RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Output Run ID
+        run: |
+          echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
+
+      - name: Download Artifact
+        run: |
+          gh run download ${{ steps.get-run-id.outputs.run_id }} \
+            -R opengrep/opengrep -n opengrep-osx-arm64
+      
+      - name: Unzip opengrep-osx-arm64
+        run: unzip opengrep-osx-arm64.zip -d opengrep-osx-arm64
+
+      - name: Move content to bin/mac
+        run: mkdir -p bin/mac && mv opengrep-osx-arm64/* bin/mac/
+
+      - name: Rename opengrep to opengrep-cli
+        run: mv bin/mac/opengrep bin/mac/opengrep-cli
+
+      - name: Show Contents of bin/mac
+        run: ls -R bin/mac
 
       - name: Build for macOS
         run: npm run make-mac
@@ -84,6 +151,38 @@ jobs:
 
       - name: Install Linux Dependencies
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm libarchive-tools
+
+      - name: Authenticate GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Get Latest Successful Run ID
+        id: get-run-id
+        run: |
+          # Fetch the latest successful run ID for the workflow
+          RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Output Run ID
+        run: |
+          echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
+
+      - name: Download Artifact
+        run: |
+          gh run download ${{ steps.get-run-id.outputs.run_id }} \
+            -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
+      
+      - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
+        run: unzip opengrep-core-and-dependent-libs-w64-artifact.zip -d opengrep-core-and-dependent-libs-w64-artifact
+
+      - name: Move content to bin/mac
+        run: mkdir -p bin/linux && mv opengrep-core-and-dependent-libs-w64-artifact/* bin/linux/
+
+      - name: Rename opengrep to opengrep-cli
+        run: mv bin/linux/opengrep bin/linux/opengrep-cli
+
+      - name: Show Contents of bin/linux
+        run: ls -R bin/linux
 
       - name: Build for Linux
         run: npm run make-linux
