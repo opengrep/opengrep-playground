@@ -21,11 +21,11 @@ watch(() => store.jsonResult, () => {
 
 
 async function generateDebuggingInfo() {
+  if (!store.findingsPath) return;
+
   const findingsJson = await readFile(store.findingsPath);
-  if (!findingsJson) return;
-
   parsedData.value = JSON.parse(findingsJson);
-
+  
   const explanations = parsedData.value.explanations || [];
   parsedData.value = parseExplanation(explanations);
 }
@@ -171,11 +171,6 @@ function handleHover(debugCodeLocation) {
 </script>
 
 <style lang="scss" scoped>
-.inspect-rule {
-  border-right: 1px solid black;
-
-}
-
 .title {
   font-size: 15px;
   font-weight: semi-bold;

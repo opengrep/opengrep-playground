@@ -59,8 +59,6 @@ configureMonacoYaml(monaco, {
   ],
 });
 
-loader.config({ monaco, paths: {
-  vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs',
-}, })
+loader.config({ monaco })
 
 app.mount('#app');

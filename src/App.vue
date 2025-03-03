@@ -4,7 +4,7 @@
     <div class="code-area">
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Rule Editor</h3>
+          <h3>Rule</h3>
         </div>
         <div class="code-editor-container">
           <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
@@ -15,7 +15,7 @@
       <!-- Code Viewer -->
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Language Editor</h3>
+          <h3>Code to Test</h3>
         </div>
         <div class="code-editor-container">
           <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
@@ -32,17 +32,6 @@
     <!-- Debug Rule Area -->
     <div class="meta-section">
       <DebugSection style="flex: 3;" class="scroll-container"/>
-      <!-- HISTORY SECTION -->
-      <div style="flex: 1" class="scroll-container">
-        <h3>History</h3>
-        <div v-if="store.history.length === 0" class="empty-state">No history records.</div>
-        <ul v-else class="history-list">
-          <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
-            class="history-entry">
-            <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
-          </li>
-        </ul>
-      </div>
     </div>
   </div>
 </template>
@@ -170,7 +159,7 @@ $secondary-color: #2ecc71;
     width: 300px;
     padding: 15px;
     flex-grow: 2;
-    overflow: auto;
+    overflow: hidden;
     font-family: monospace;
     display: flex;
     flex-direction: column;
@@ -204,23 +193,6 @@ $secondary-color: #2ecc71;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     gap: 16px;
 
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-
-      .history-entry {
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        padding: 8px;
-        border-radius: 4px;
-
-        &:hover {
-          background: #e9ecef;
-        }
-      }
-    }
   }
 
   .editor-header {
@@ -242,6 +214,7 @@ $secondary-color: #2ecc71;
 
   .code-editor-container {
     flex: 1;
+    min-height: 0;
   }
 
   .textarea-container {
