@@ -36,7 +36,7 @@ jobs:
       
       - name: Authenticate GitHub CLI
         run: |
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Get Latest Successful Run ID
         id: get-run-id
