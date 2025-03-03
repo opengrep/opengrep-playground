@@ -14,7 +14,7 @@
                 <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
                     :key="run.tool.driver.name" class="run-card">
 
-                    <div v-if ="run.results.length === 0">
+                    <div v-if="run.results.length === 0">
                         <div class="empty-state">
                             <p>No scan results found.</p>
                         </div>
@@ -23,7 +23,6 @@
                         <div @click="toggleCollapse(resultIndex)"
                             style="display: flex; justify-content: space-between; align-items: center;">
                             <h4>Rule: {{ result.ruleId.split('tmp.').pop() }}</h4>
-                            <span>{{ collapsedRuns[resultIndex] ? '▼' : '▲' }}</span>
                         </div>
                         <div class="result-body" v-show="!collapsedRuns[resultIndex]">
                             <p>{{ result.message.text }}</p>
@@ -52,7 +51,7 @@
             </div>
             <template v-else>
                 <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
-                    <div v-if ="store.jsonResult?.parsedTestResults.length === 0">
+                    <div v-if="store.jsonResult?.parsedTestResults.length === 0">
                         <div class="empty-state">
                             <p>No test results found.</p>
                         </div>
@@ -74,7 +73,7 @@
 </template>
 
 <script setup>
-import { inject, defineEmits, ref } from 'vue';
+import { inject, defineEmits, ref, onMounted } from 'vue';
 import { store } from '../store'
 
 const emit = defineEmits(['showDataFlows']);
@@ -87,56 +86,66 @@ const showErrorDialog = inject('$showErrorDialog');
 const isScanLoading = ref(false);
 const isTestLoading = ref(false);
 const collapsedRuns = ref({});
+const platform = ref(null);
 
-async function handleRunBinary(event, runScanWithoutMatchingExplanations = false) {
+onMounted(async () => {
+    platform.value = await getPlatform();
+});
+
+
+async function handleRunBinary() {
     if (!store.ruleEditorCode) return;
 
     setCodeChangeHistory();
+    isScanLoading.value = true;
+    isTestLoading.value = true;
+    store.jsonResult = {
+        scanResults: null,
+        testResults: null,
+        parsedTestResults: []
+    }
 
+    // Select correct binary based on OS
+    let binaryPath = null
+    switch (platform.value) {
+        case 'win32':
+            binaryPath = await joinPath(store.rootDir, 'bin', 'windows', 'core', 'opengrep-cli.exe');
+            break;
+        case 'darwin':
+            binaryPath = await joinPath(store.rootDir, 'bin', 'macos', 'core', 'opengrep-cli');
+            break;
+        default:
+            binaryPath = await joinPath(store.rootDir, 'bin', 'linux', 'core', 'opengrep-cli');
+    }
+
+    // Run tests
     try {
-        isScanLoading.value = true;
-        isTestLoading.value = true;
-        store.jsonResult = {
-            scanResults: null,
-            testResults: null,
-            parsedTestResults: []
-        }
-        const platform = await getPlatform();
-        let windowsCliFix = "";
-
-        // Select correct binary based on OS
-        let binaryFileName;
-        if (platform === 'win32') {
-            binaryFileName = 'opengrep_windows_x86.exe';
-            windowsCliFix = "-j 1";
-        } else if (platform === 'darwin') {
-            binaryFileName = 'opengrep_osx_arm64';
-        } else {
-            binaryFileName = 'opengrep_manylinux_x86';
-        }
-        // Construct the full binary path
-        const binaryPath = await joinPath(store.rootDir, 'bin', binaryFileName);
-
-        await runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations);
         await runBinaryForTests(binaryPath);
-
     } catch (error) {
-        isScanLoading.value = false;
+        showErrorDialog(`Error running tests: Please consult the error.log file at ${store.safeDir}`, error);
+        console.error("Error running tests:", error);
+    } finally {
         isTestLoading.value = false;
+    }
 
-        if (error.includes("the engine was killed")) {
-            const message = 'Rule inspection data retrieval failed.\n Retrying scan without debug information.';
-            showErrorDialog(message);
-            console.error(message);
-
-            // Retry running the binary without matching explanations flag if the engine was killed
-            await handleRunBinary(event, true);
+    // Run scan with retrying incase of error
+    let retryAttempted = true;
+    try {
+        await runBinaryForScan(binaryPath, false);
+    } catch (error) {
+        if (!retryAttempted) {
+            showErrorDialog(`Error running scanning: Please consult the error.log file at ${store.safeDir}`, error);
+            console.error("Error running scanning:", error);
             return;
         }
 
-        showErrorDialog(`Error running scanning and testing: Please consult the error.log file at ${store.safeDir}`, error);
-        console.error("Error running scanning and testing:", error);
+        retryAttempted = false;
+        await runBinaryForScan(binaryPath, true);
+    } finally {
+        isScanLoading.value = false;
     }
+
+
 }
 
 function setCodeChangeHistory() {
@@ -161,22 +170,28 @@ function setCodeChangeHistory() {
     }
 }
 
-async function runBinaryForScan(binaryPath, windowsCliFix, runScanWithoutMatchingExplanations) {
+async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) {
     const scanArgs = [
-        "scan",
+        'scan',
         `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
-        "--sarif",
-        "--dataflow-traces",
+        '--sarif',
+        '--dataflow-traces',
         `--json-output="${store.safeDir}/tmp/findings.json"`,
-        windowsCliFix
+        '--experimental',
     ];
 
-    debugger;
+    if (platform.value === 'win32') {
+        scanArgs.push('-j 1');
+    }
     if (!runScanWithoutMatchingExplanations) {
-        scanArgs.push("--matching-explanations");
+        scanArgs.push('--matching-explanations');
     }
 
     const scanResponse = await runBinary(`"${binaryPath}"`, scanArgs);
+    if(scanResponse.errorOutput && !scanResponse.output){
+        throw new Error(scanResponse.errorOutput);
+    }
+
     const scanResults = JSON.parse(scanResponse.output);
 
     if (extractScanErrors(scanResults).length > 0) {
@@ -201,14 +216,16 @@ function extractScanErrors(jsonOutput) {
     return jsonOutput.runs?.flatMap(run =>
         run.invocations?.flatMap(invocation =>
             invocation.toolExecutionNotifications?.filter(notification =>
-                notification.level === "error" && notification.message?.text
+                notification.level === 'error' && notification.message?.text
             ).map(notification => notification.message.text)
         ) || []
     ) || [];
 }
 
 async function runBinaryForTests(binaryPath) {
-    const testResponse = await runBinary(`"${binaryPath}"`, ["test", `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, "--json"])
+    const testArgs = ['test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, '--json', '--experimental'];
+
+    const testResponse = await runBinary(`"${binaryPath}"`, testArgs)
     const testResults = JSON.parse(testResponse.output);
 
     const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];

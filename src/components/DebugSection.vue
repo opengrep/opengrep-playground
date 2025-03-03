@@ -21,11 +21,11 @@ watch(() => store.jsonResult, () => {
 
 
 async function generateDebuggingInfo() {
+  if (!store.findingsPath) return;
+
   const findingsJson = await readFile(store.findingsPath);
-  if (!findingsJson) return;
-
   parsedData.value = JSON.parse(findingsJson);
-
+  
   const explanations = parsedData.value.explanations || [];
   parsedData.value = parseExplanation(explanations);
 }
