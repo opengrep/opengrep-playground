@@ -124,6 +124,9 @@ jobs:
       - name: Move content to bin/mac
         run: mkdir -p bin/mac && mv opengrep-osx-arm64/* bin/mac/
 
+      - name: List Contents of bin/mac (Non-Recursive)
+        run: ls bin/mac
+
       - name: Rename opengrep to opengrep-cli
         run: mv bin/mac/opengrep bin/mac/opengrep-cli
 
