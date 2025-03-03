@@ -125,7 +125,7 @@ jobs:
         run: mkdir -p bin/macos && mv opengrep-osx-arm64/artifacts/* bin/macos/
 
       - name: List Contents of bin/macos (Non-Recursive)
-        run: ls bin/mac
+        run: ls bin/macos
 
       - name: Rename opengrep to opengrep-cli
         run: mv bin/macos/opengrep-core bin/mac/opengrep-cli
