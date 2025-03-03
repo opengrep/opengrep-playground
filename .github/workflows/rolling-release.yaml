@@ -128,7 +128,7 @@ jobs:
         run: ls bin/macos
 
       - name: Rename opengrep to opengrep-cli
-        run: mv bin/macos/opengrep-core bin/mac/opengrep-cli
+        run: mv bin/macos/opengrep-core bin/macos/opengrep-cli
 
       - name: Show Contents of bin/macos
         run: ls -R bin/macos
