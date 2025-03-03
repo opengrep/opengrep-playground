@@ -120,9 +120,6 @@ jobs:
 
       - name: List Unzipped Artifact
         run: ls -R opengrep-osx-arm64
-      
-      - name: Unzip opengrep-osx-arm64
-        run: unzip opengrep-osx-arm64.zip -d opengrep-osx-arm64
 
       - name: Move content to bin/mac
         run: mkdir -p bin/mac && mv opengrep-osx-arm64/* bin/mac/
