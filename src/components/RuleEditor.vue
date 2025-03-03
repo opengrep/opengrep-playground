@@ -1,5 +1,5 @@
 <template>
-    <vue-monaco-editor :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
+    <vue-monaco-editor style="min-height: 0;" :options="MONACO_EDITOR_OPTIONS" :language="language" @mount="handleMount"
         @change="handleCodeChange" />
 </template>
 

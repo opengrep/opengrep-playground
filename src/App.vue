@@ -170,7 +170,7 @@ $secondary-color: #2ecc71;
     width: 300px;
     padding: 15px;
     flex-grow: 2;
-    overflow: auto;
+    overflow: hidden;
     font-family: monospace;
     display: flex;
     flex-direction: column;
@@ -242,6 +242,7 @@ $secondary-color: #2ecc71;
 
   .code-editor-container {
     flex: 1;
+    min-height: 0;
   }
 
   .textarea-container {

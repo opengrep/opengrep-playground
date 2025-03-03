@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-import { inject, defineEmits, ref } from 'vue';
+import { inject, ref } from 'vue';
 import { store } from '../store'
 
 const emit = defineEmits(['showDataFlows']);
