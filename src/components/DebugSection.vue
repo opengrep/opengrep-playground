@@ -171,11 +171,6 @@ function handleHover(debugCodeLocation) {
 </script>
 
 <style lang="scss" scoped>
-.inspect-rule {
-  border-right: 1px solid black;
-
-}
-
 .title {
   font-size: 15px;
   font-weight: semi-bold;

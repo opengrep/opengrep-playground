@@ -32,17 +32,6 @@
     <!-- Debug Rule Area -->
     <div class="meta-section">
       <DebugSection style="flex: 3;" class="scroll-container"/>
-      <!-- HISTORY SECTION -->
-      <div style="flex: 1" class="scroll-container">
-        <h3>History</h3>
-        <div v-if="store.history.length === 0" class="empty-state">No history records.</div>
-        <ul v-else class="history-list">
-          <li v-for="(entry, index) in store.history" :key="index" @click="handleHistoryClick(entry)"
-            class="history-entry">
-            <strong>{{ entry.editorType }}</strong> - <em>({{ entry.timestamp }})</em>
-          </li>
-        </ul>
-      </div>
     </div>
   </div>
 </template>
@@ -204,23 +193,6 @@ $secondary-color: #2ecc71;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     gap: 16px;
 
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-
-      .history-entry {
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        padding: 8px;
-        border-radius: 4px;
-
-        &:hover {
-          background: #e9ecef;
-        }
-      }
-    }
   }
 
   .editor-header {

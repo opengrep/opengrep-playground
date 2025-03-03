@@ -96,7 +96,6 @@ onMounted(async () => {
 async function handleRunBinary() {
     if (!store.ruleEditorCode) return;
 
-    setCodeChangeHistory();
     isScanLoading.value = true;
     isTestLoading.value = true;
     store.jsonResult = {
@@ -146,28 +145,6 @@ async function handleRunBinary() {
     }
 
 
-}
-
-function setCodeChangeHistory() {
-    // add history records
-    const latestCodeEntry = store.history.findLast(entry => entry.editorType === 'code-editor');
-    const latestRuleEntry = store.history.findLast(entry => entry.editorType === 'rule-editor');
-
-    if (!latestCodeEntry || latestCodeEntry.content !== store.codeEditorCode) {
-        store.history.push({
-            editorType: 'code-editor',
-            content: store.codeEditorCode,
-            timestamp: new Date().toLocaleString()
-        });
-    }
-
-    if (!latestRuleEntry || latestRuleEntry.content !== store.ruleEditorCode) {
-        store.history.push({
-            editorType: 'rule-editor',
-            content: store.ruleEditorCode,
-            timestamp: new Date().toLocaleString()
-        });
-    }
 }
 
 async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) {
