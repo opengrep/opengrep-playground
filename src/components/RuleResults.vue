@@ -258,7 +258,7 @@ function getMatchSatusText(result) {
 .test-results {
     font-family: Arial, sans-serif;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
     grid-gap: 8px;
     white-space: nowrap;
 }
@@ -413,6 +413,7 @@ button {
 /* Scrollable Sections */
 .scrollable-section {
     overflow-y: auto;
+    width: 100%;
 }
 
 .empty-state {
