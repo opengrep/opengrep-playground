@@ -51,8 +51,7 @@ jobs:
       
       - name: Download Artifact
         run: |
-          gh run download ${{ env.run_id }} \
-            -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
+          gh run download ${{ env.run_id }} -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
         
       - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
         run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
