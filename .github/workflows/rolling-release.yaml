@@ -56,15 +56,15 @@ jobs:
         run: |
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
             -R opengrep/opengrep -n opengrep-core-x86
-      
+     
       - name: Unzip opengrep-core-x86
-        run: unzip opengrep-core-x86.zip -d opengrep-core-x86
+        run: mkdir -p opengrep-core-x86 && tar -xzf artifacts.tgz -C opengrep-core-x86
 
       - name: Move content to bin/windows
-        run: mkdir -p bin/windows && mv opengrep-core-x86/* bin/windows/
+        run: mkdir -p bin/windows && mv opengrep-core-x86/artifacts/* bin/windows/
 
-      - name: Rename opengrep to opengrep-cli
-        run: mv bin/windows/opengrep bin/windows/opengrep-cli
+      - name: Rename opengrep-core to opengrep-cli
+        run: mv bin/windows/opengrep-core bin/windows/opengrep-cli
 
       - name: Show Contents of bin/windows
         run: ls -R bin/windows
@@ -112,22 +112,13 @@ jobs:
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
             -R opengrep/opengrep -n opengrep-osx-arm64
 
-      - name: List Downloaded Artifact
-        run: ls -R
-
       - name: Unzip opengrep-osx-arm64
         run: mkdir -p opengrep-osx-arm64 && tar -xzf artifacts.tgz -C opengrep-osx-arm64
-
-      - name: List Unzipped Artifact
-        run: ls -R opengrep-osx-arm64
 
       - name: Move content to bin/mac
         run: mkdir -p bin/macos && mv opengrep-osx-arm64/artifacts/* bin/macos/
 
-      - name: List Contents of bin/macos (Non-Recursive)
-        run: ls bin/macos
-
-      - name: Rename opengrep to opengrep-cli
+      - name: Rename opengrep-core to opengrep-cli
         run: mv bin/macos/opengrep-core bin/macos/opengrep-cli
 
       - name: Show Contents of bin/macos
@@ -186,16 +177,16 @@ jobs:
             -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
       
       - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
-        run: unzip opengrep-core-and-dependent-libs-w64-artifact.zip -d opengrep-core-and-dependent-libs-w64-artifact
+        run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
 
-      - name: Move content to bin/mac
-        run: mkdir -p bin/linux && mv opengrep-core-and-dependent-libs-w64-artifact/* bin/linux/
+      - name: Move content to bin/linux
+        run: mkdir -p bin/linux && mv opengrep-core-and-dependent-libs-w64-artifact/artifacts/* bin/linux/
 
-      - name: Rename opengrep to opengrep-cli
-        run: mv bin/linux/opengrep bin/linux/opengrep-cli
+      - name: Rename opengrep-core to opengrep-cli
+        run: mv bin/linux/opengrep-core bin/linux/opengrep-cli
 
       - name: Show Contents of bin/linux
-        run: ls -R bin/linux
+        run: ls -R bin/linux    
 
       - name: Build for Linux
         run: npm run make-linux
