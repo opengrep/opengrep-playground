@@ -115,13 +115,13 @@ async function handleRunBinary() {
     let binaryPath = null
     switch (platform.value) {
         case 'win32':
-            binaryPath = await joinPath(store.rootDir, 'bin', 'windows', 'core', 'opengrep-cli.exe');
+            binaryPath = await joinPath(store.rootDir, 'bin', 'windows', 'opengrep-cli.exe');
             break;
         case 'darwin':
-            binaryPath = await joinPath(store.rootDir, 'bin', 'macos', 'core', 'opengrep-cli');
+            binaryPath = await joinPath(store.rootDir, 'bin', 'macos', 'opengrep-cli');
             break;
         default:
-            binaryPath = await joinPath(store.rootDir, 'bin', 'linux', 'core', 'opengrep-cli');
+            binaryPath = await joinPath(store.rootDir, 'bin', 'linux', 'opengrep-cli');
     }
 
     // Run tests
