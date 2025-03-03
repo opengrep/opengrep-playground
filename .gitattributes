@@ -1,3 +1,0 @@
-bin/macos/core/opengrep-cli filter=lfs diff=lfs merge=lfs -text
-bin/linux/core/opengrep-cli filter=lfs diff=lfs merge=lfs -text
-bin/windows/core/opengrep-cli.exe filter=lfs diff=lfs merge=lfs -text
