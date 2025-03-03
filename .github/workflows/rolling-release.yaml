@@ -122,16 +122,16 @@ jobs:
         run: ls -R opengrep-osx-arm64
 
       - name: Move content to bin/mac
-        run: mkdir -p bin/mac && mv opengrep-osx-arm64/artifacts/* bin/mac/
+        run: mkdir -p bin/macos && mv opengrep-osx-arm64/artifacts/* bin/macos/
 
-      - name: List Contents of bin/mac (Non-Recursive)
+      - name: List Contents of bin/macos (Non-Recursive)
         run: ls bin/mac
 
       - name: Rename opengrep to opengrep-cli
-        run: mv bin/mac/opengrep-core bin/mac/opengrep-cli
+        run: mv bin/macos/opengrep-core bin/mac/opengrep-cli
 
-      - name: Show Contents of bin/mac
-        run: ls -R bin/mac
+      - name: Show Contents of bin/macos
+        run: ls -R bin/macos
 
       - name: Build for macOS
         run: npm run make-mac
