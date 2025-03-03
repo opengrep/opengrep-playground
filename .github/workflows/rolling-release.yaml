@@ -33,9 +33,6 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-
-      - name: Run Prebuild Script
-        run: node prebuild.js windows
       
       - name: Authenticate GitHub CLI
         run: |
@@ -51,20 +48,20 @@ jobs:
       - name: Output Run ID
         run: |
           echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
-
+      
       - name: Download Artifact
         run: |
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
-            -R opengrep/opengrep -n opengrep-core-x86
-     
-      - name: Unzip opengrep-core-x86
-        run: mkdir -p opengrep-core-x86 && tar -xzf artifacts.tgz -C opengrep-core-x86
+            -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
+        
+      - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
+        run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
 
       - name: Move content to bin/windows
-        run: mkdir -p bin/windows && mv opengrep-core-x86/artifacts/* bin/windows/
+        run: mkdir -p bin/windows && mv opengrep-core-and-dependent-libs-w64-artifact/artifacts/* bin/windows/
 
       - name: Rename opengrep-core to opengrep-cli
-        run: mv bin/windows/opengrep-core bin/windows/opengrep-cli
+        run: mv bin/windows/opengrep-core.exe bin/windows/opengrep-cli.exe
 
       - name: Show Contents of bin/windows
         run: ls -R bin/windows
@@ -174,13 +171,13 @@ jobs:
       - name: Download Artifact
         run: |
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
-            -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
+            -R opengrep/opengrep -n opengrep-core-x86
       
-      - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
-        run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
+      - name: Unzip opengrep-core-x86
+        run: mkdir -p opengrep-core-x86 && tar -xzf artifacts.tgz -C opengrep-core-x86
 
       - name: Move content to bin/linux
-        run: mkdir -p bin/linux && mv opengrep-core-and-dependent-libs-w64-artifact/artifacts/* bin/linux/
+        run: mkdir -p bin/linux && mv opengrep-core-x86/artifacts/* bin/linux/
 
       - name: Rename opengrep-core to opengrep-cli
         run: mv bin/linux/opengrep-core bin/linux/opengrep-cli
