@@ -11,8 +11,15 @@
                 <div class="loading-circle"></div>
             </div>
             <template v-else>
-                <div v-if="store.jsonResult?.scanResults" v-for="(run, index) in store.jsonResult.scanResults.runs"
-                    :key="run.tool.driver.name" class="run-card">
+
+                <div v-if="store.jsonResult?.scanResults === null">
+                    <div class="empty-state">
+                        <p>No scan results.</p>
+                    </div>
+                </div>
+
+                <div v-else v-for="(run, index) in store.jsonResult.scanResults?.runs" :key="run.tool.driver.name"
+                    class="run-card">
 
                     <div v-if="run.results.length === 0">
                         <div class="empty-state">
@@ -53,7 +60,7 @@
                 <div v-if="store.jsonResult?.parsedTestResults" class="test-results">
                     <div v-if="store.jsonResult?.parsedTestResults.length === 0">
                         <div class="empty-state">
-                            <p>No test results found.</p>
+                            <p>No test results.</p>
                         </div>
                     </div>
                     <div v-else v-for="testResult of store.jsonResult?.parsedTestResults" class="test-result-card"

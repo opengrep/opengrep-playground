@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import os from 'os';
+const { screen } = require('electron');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -12,9 +13,12 @@ if (started) {
 
 const createWindow = () => {
   // Create the browser window.
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: width / 2,
+    height: height,
     webPreferences: {
       nodeIntegration: false, // Better security
       contextIsolation: true,

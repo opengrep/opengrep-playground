@@ -4,7 +4,7 @@
     <div class="code-area">
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Rule Editor</h3>
+          <h3>Rule</h3>
         </div>
         <div class="code-editor-container">
           <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
@@ -15,7 +15,7 @@
       <!-- Code Viewer -->
       <div class="column-view resizable">
         <div class="editor-header">
-          <h3>Language Editor</h3>
+          <h3>Code to Test</h3>
         </div>
         <div class="code-editor-container">
           <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
@@ -159,7 +159,7 @@ $secondary-color: #2ecc71;
     width: 300px;
     padding: 15px;
     flex-grow: 2;
-    overflow: auto;
+    overflow: hidden;
     font-family: monospace;
     display: flex;
     flex-direction: column;
@@ -214,6 +214,7 @@ $secondary-color: #2ecc71;
 
   .code-editor-container {
     flex: 1;
+    min-height: 0;
   }
 
   .textarea-container {
