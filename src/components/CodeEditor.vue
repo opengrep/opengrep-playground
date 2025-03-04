@@ -69,6 +69,14 @@ watch(() => store.codeEditorCode, (newCode) => {
     }
 }, { deep: true });
 
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
+
 
 function determineHighlightCode(scanResults) {
     // Clear existing decorations
@@ -76,15 +84,15 @@ function determineHighlightCode(scanResults) {
 
     const newDecorations = [];
 
-    (scanResults?.runs || []).flatMap(run => run.results || [])
-        .flatMap(result => result.locations || [])
-        .forEach(location => {
-            const region = location.physicalLocation.region;
-            newDecorations.push({
-                range: new monaco.Range(region.startLine, region.startColumn, region.endLine, region.endColumn),
-                options: { inlineClassName: "code-highlight" }
-            });
+    (scanResults?.results || []).forEach(result => {
+        const start = result.start;
+        const end = result.end;
+
+        newDecorations.push({
+            range: new monaco.Range(start.line, start.col, end.line, end.col),
+            options: { inlineClassName: "code-highlight" }
         });
+    });
 
     componentState.existingHiglightCodeDecorations = editorRef.value.deltaDecorations(componentState.existingHiglightCodeDecorations, newDecorations);
 }
@@ -189,38 +197,33 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, newDecorations);
 }
 
-function determineCodeFlowInformation(ruleResult) {
+function determineCodeFlowInformation(dataFlows) {
     editorRef.value.changeViewZones(accessor => {
         // Remove existing annotation zones
         componentState.exisitingAnnotationZones.forEach(zone => accessor.removeZone(zone));
+        componentState.exisitingAnnotationZones = [];
 
-        ruleResult?.codeFlows.flatMap(codeFlow => codeFlow.threadFlows || [])
-            .flatMap(threadFlow => threadFlow.locations || [])
-            .forEach((location, index, locations) => {
-                const annotationIndex = index + 1;  // Increment annotation label (A1, A2, A3, ...)
+        let index = 1;
 
-                const region = location?.location?.physicalLocation?.region;
-                if (!region) return; // Skip if region is invalid
+        const addAnnotationZone = (label, text, location, snippet) => {
+            componentState.exisitingAnnotationZones.push(accessor.addZone({
+                afterLineNumber: location.start.line,
+                heightInPx: 18,
+                domNode: createAnnotationNode(label, text, snippet)
+            }));
+        };
 
-                const codeSnippet = region?.snippet?.text || 'Unknown code';
+        if (dataFlows.taint_source?.length && Array.isArray(dataFlows.taint_source[1])) {
+            addAnnotationZone(`A${index++}`, `⨀ Taint originates from this source: `, dataFlows.taint_source[1][0], dataFlows.taint_source[1][1]);
+        }
 
-                // Generate dynamic annotation message
-                let annotationText;
-                if (annotationIndex === 1) {
-                    annotationText = `⨀ Taint originates from this source: `;
-                } else if (annotationIndex === locations.length) {
-                    annotationText = `◉ Taint flows to this sink: `;
-                } else {
-                    annotationText = `→ Taint flows through this intermediate variable: `;
-                }
+        dataFlows.intermediate_vars?.forEach((intermediateVar) => {
+            addAnnotationZone(`A${index++}`, `→ Taint flows through this intermediate variable: `, intermediateVar.location, intermediateVar.content);
+        });
 
-                // Add annotation zone
-                componentState.exisitingAnnotationZones.push(accessor.addZone({
-                    afterLineNumber: region.startLine,
-                    heightInPx: 18,
-                    domNode: createAnnotationNode(`A${annotationIndex}`, annotationText, codeSnippet)
-                }));
-            });
+        if (dataFlows.taint_sink?.length && Array.isArray(dataFlows.taint_sink[1])) {
+            addAnnotationZone(`A${index}`, `◉ Taint flows to this sink: `, dataFlows.taint_sink[1][0], dataFlows.taint_sink[1][1]);
+        }
     });
 }
 
@@ -268,14 +271,6 @@ function handleCodeChange(code) {
     store.codeEditorCode = code;
     emit('codeEditorUpdated');
 };
-
-onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
-});
 
 function highlightDebugLocationCode(locations) {
     if (!locations || !locations.length) {

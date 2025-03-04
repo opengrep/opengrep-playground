@@ -58,12 +58,11 @@ const startWidth = ref(0);
 onMounted(async () => {
   store.safeDir = await getSafeDir();
   store.rootDir = await getRootDir();
-  store.findingsPath = await joinPath(store.safeDir, "tmp", "findings.json");
 });
 
-function handleShowDataFlows(ruleResult) {
+function handleShowDataFlows(dataFlows) {
   if (codeEditor.value) {
-    codeEditor.value.determineCodeFlowInformation(ruleResult);
+    codeEditor.value.determineCodeFlowInformation(dataFlows);
   }
 };
 

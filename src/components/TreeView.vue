@@ -37,9 +37,9 @@ const toggle = () => {
 
 // Emit only once from parent node
 const handleMouseOver = () => {
-  if (currentHoveredNode.value !== props.data?.debugMatches) {
-    currentHoveredNode.value = props.data?.debugMatches;
-    emit("node-hover", props.data?.debugMatches);
+  if (currentHoveredNode.value !== props.data?.matches) {
+    currentHoveredNode.value = props.data?.matches;
+    emit("node-hover", props.data?.matches);
   }
 };
 

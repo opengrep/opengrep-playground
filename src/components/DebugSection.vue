@@ -7,26 +7,21 @@
 </template>
 
 <script setup>
-import { ref, inject, watch } from "vue";
+import { ref, watch } from "vue";
 import TreeView from "./TreeView.vue";
 import { store } from '../store'
 
-const readFile = inject('$readFile');
-
 const parsedData = ref(null);
 
-watch(() => store.jsonResult, () => {
-  generateDebuggingInfo();
+watch(() => store.jsonResult.scanResults, (scanResults) => {
+  generateDebuggingInfo(scanResults);
 }, { deep: true });
 
 
-async function generateDebuggingInfo() {
-  if (!store.findingsPath) return;
-
-  const findingsJson = await readFile(store.findingsPath);
-  parsedData.value = JSON.parse(findingsJson);
+async function generateDebuggingInfo(scanResults) {
+  if (!scanResults) return;
   
-  const explanations = parsedData.value.explanations || [];
+  const explanations = scanResults.explanations || [];
   parsedData.value = parseExplanation(explanations);
 }
 
@@ -39,116 +34,55 @@ async function generateDebuggingInfo() {
 function parseExplanation(explanations) {
   if (!explanations || explanations.length === 0) return null;
 
-  let rootNode = null;
-
-  explanations.forEach((exp) => {
-    let currentNode = {
-      name: formatOpName(exp.op),
-      debugMatches: extractUniqueDebugCodeLocationMatches(exp),
-      children: [],
-    };
-
-    if (exp.op === "Taint") {
-      currentNode.children = processTaintChildren(exp.children);
-    } else {
-      currentNode.children = processChildren(exp.children);
-    }
-
-    // Set the first explanation as the root node
-    if (!rootNode) {
-      rootNode = currentNode;
-    }
-  });
+  const rootNode = explanations.map(exp => ({
+    name: formatOpName(exp.op),
+    matches: exp.matches.length > 0 ? exp.matches : [exp.loc],
+    children: processChildren(exp.children, exp.op === "Taint")
+  }))[0];
 
   return rootNode;
-}
-
-/**
- * Processes the taint analysis children nodes and categorizes them into sources, sinks, and sanitizers.
- *
- * @param {Array} children - The array of child nodes to process.
- * @returns {Array} An array containing three nodes: sourcesNode, sinksNode, and sanitizersNode.
- */
-function processTaintChildren(children) {
-  const sourcesNode = { name: "pattern-sources", debugMatches: [], children: [] };
-  const sinksNode = { name: "pattern-sinks", debugMatches: [], children: [] };
-  const sanitizersNode = { name: "pattern-sanitizers", debugMatches: [], children: [] };
-
-  children.forEach((child) => {
-    if (child.op === "TaintSource") {
-      sourcesNode.debugMatches = extractUniqueDebugCodeLocationMatches(child);
-      sourcesNode.children = processChildren(child.children);
-    } else if (child.op === "TaintSink") {
-      let sinkPatternsNode = {
-        name: "patterns",
-        debugMatches: extractUniqueDebugCodeLocationMatches(child),
-        children: processChildren(child.children),
-      };
-      sinksNode.children.push(sinkPatternsNode);
-    } else if (child.op === "TaintSanitizer") {
-      let sanitizerPatternsNode = {
-        name: "patterns",
-        debugMatches: extractUniqueDebugCodeLocationMatches(child),
-        children: processChildren(child.children),
-      };
-      sanitizersNode.children.push(sanitizerPatternsNode);
-    }
-  });
-  return [sourcesNode, sinksNode, sanitizersNode];
 }
 
 /**
  * Processes a tree of nodes and returns a new tree with formatted node names and unique debug matches.
  *
  * @param {Array} children - The array of child nodes to process.
+ * @param {Boolean} isTaint - Flag indicating if the children are part of a taint analysis.
  * @returns {Array} - The processed array of nodes with formatted names and unique debug matches.
  */
-function processChildren(children) {
+function processChildren(children, isTaint = false) {
   if (!children) return [];
 
-  let result = [];
-  let stack = [...children];
-
-  while (stack.length > 0) {
-    let node = stack.pop();
-
-    let newNode = {
-      name: formatOpName(node.op),
-      debugMatches: extractUniqueDebugCodeLocationMatches(node),
-      children: [],
+  if (isTaint) {
+    const nodes = {
+      TaintSource: { name: "pattern-sources", matches: [], children: [] },
+      TaintSink: { name: "pattern-sinks", matches: [], children: [] },
+      TaintSanitizer: { name: "pattern-sanitizers", matches: [], children: [] }
     };
 
-    if (node.children && node.children.length > 0) {
-      newNode.children = processChildren(node.children);
-    }
+    children.forEach(child => {
+      const node = nodes[child.op];
+      if (node) {
+        node.matches = child.matches.length > 0 ? child.matches : [child.loc];
+        node.children = processChildren(child.children);
+      }
+    });
 
-    result.push(newNode);
+    return Object.values(nodes);
   }
 
-  return result;
-}
-
-function extractUniqueDebugCodeLocationMatches(nodes) {
-  if (!nodes.matches || !Array.isArray(nodes.matches)) return null;
-
-  return nodes.matches.reduce((acc, match) => {
-    if (!acc.some(existingMatch =>
-      JSON.stringify(existingMatch.start) === JSON.stringify(match.start) &&
-      JSON.stringify(existingMatch.end) === JSON.stringify(match.end))) {
-      acc.push({
-        start: match.start,
-        end: match.end,
-      });
-    }
-    return acc;
-  }, [])
+  return children.map(node => ({
+    name: formatOpName(node.op),
+    matches: node.matches.length > 0 ? node.matches : [node.loc],
+    children: processChildren(node.children)
+  }));
 }
 
 function formatOpName(op) {
   if (!op) return "Unknown";
 
   if (Array.isArray(op)) {
-    return `pattern: ${op[1]}`;
+    return `${op[0] === 'XPat' ? 'pattern' : op[0]}: ${op[1]}`;
   }
 
   const opMapping = {
