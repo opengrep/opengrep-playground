@@ -27,7 +27,7 @@ const MONACO_EDITOR_OPTIONS = {
     glyphMargin: true,
     lineNumbersMinChars: 3,
     scrollbar: {
-        vertical: 'hidden',
+        vertical: 'auto',
         horizontal: 'hidden'
     }
 };
@@ -66,6 +66,11 @@ watch(() => store.codeEditorCode, (newCode) => {
         if (model && model.getValue() !== newCode) {
             model.setValue(newCode);
         }
+
+        editorRef.value.changeViewZones(accessor => {
+            // Remove existing annotation zones
+            componentState.exisitingAnnotationZones.forEach(zone => accessor.removeZone(zone));
+        });
     }
 }, { deep: true });
 
@@ -105,31 +110,9 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
 
     let newDecorations = [];
     store.jsonResult.parsedTestResults = [];
-
-    // Check for comments indicating false positives (//ok or // ok)
-    const model = editorRef.value.getModel();
-    const linesCount = model.getLineCount();
-    for (let lineNumber = 1; lineNumber <= linesCount; lineNumber++) {
-        const lineContent = model.getLineContent(lineNumber);
-        if (lineContent.includes('ok: ') || lineContent.includes('ruleid: ')) {
-            store.jsonResult.parsedTestResults.push({
-                mustMatch: false,
-                lineNumber: ++lineNumber,
-                ruleId: null,
-                status: 'SUCCESS'
-            });
-
-            newDecorations.push({
-                range: new monaco.Range(lineNumber - 1, 1, lineNumber - 1, 1),
-                options: {
-                    isWholeLine: true,
-                    className: "full-line-highlight-added",
-                    glyphMarginClassName: "diff-added-gutter"
-                }
-            });
-        }
-    }
-
+    debugger;
+    let expectedSet = null;
+    let reportedSet = null;
 
     // Extract the matches from the JSON
     Object.entries(rawTestResults.results[store.ruleFilePath].checks).forEach(([ruleId, check]) => {
@@ -137,48 +120,47 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
             const { expected_lines = [], reported_lines = [] } = matchData;
 
             // Convert arrays to sets for easier comparison
-            const expectedSet = new Set(expected_lines);
-            const reportedSet = new Set(reported_lines);
+            expectedSet = new Set(expected_lines);
+            reportedSet = new Set(reported_lines);
 
-            // Highlight expected lines (Green - should be present)
+            /** if expected but not reported then
+             * ok ==> must not match green
+             * ruleid ==> must match red
+             * nothing ==> empty
+             */
             expected_lines.forEach((line) => {
-                newDecorations = newDecorations.map(decoration => {
-                    if (decoration.range.startLineNumber === line - 1) {
-                        return {
-                            ...decoration,
-                            options: {
-                                ...decoration.options,
-                                className: reportedSet.has(line) ? "full-line-highlight-added" : "full-line-highlight-removed",
-                                glyphMarginClassName: reportedSet.has(line) ? "diff-added-gutter" : "diff-removed-gutter"
-                            }
-                        }
-                    }
-                    return decoration;
-                });
-
-                store.jsonResult.parsedTestResults = store.jsonResult.parsedTestResults.map(testResult => {
-                    if (testResult.lineNumber === line) {
-                        return {
-                            ...testResult,
-                            mustMatch: reportedSet.has(line),
-                            ruleId,
-                            status: reportedSet.has(line) ? 'SUCCESS' : 'FAILED'
-                        };
-                    }
-
-                    return testResult;
-                });
-            });
-
-            // Highlight reported lines that are not in expected lines (Red - detected issues)
-            reported_lines.forEach(line => {
-                if (!expectedSet.has(line)) {
+                if (!reportedSet.has(line)) {
                     newDecorations.push({
-                        range: new monaco.Range(line, 1, line, 1),
+                        range: new monaco.Range(line - 1, 1, line - 1, 1),
                         options: {
                             isWholeLine: true,
-                            className: "full-line-highlight-unexpected",
-                            glyphMarginClassName: "diff-unexpected-gutter"
+                            className: "full-line-highlight-removed",
+                            glyphMarginClassName: "diff-removed-gutter"
+                        }
+                    });
+
+                    store.jsonResult.parsedTestResults.push({
+                        lineNumber: line,
+                        mustMatch: true,
+                        ruleId,
+                        status: 'FAILED'
+                    });
+                }
+            });
+
+            /** if reported but not expected then
+             * ok comment ==> must not match red
+             * ruleid comment ==> must match green
+             * no comment ==> empty
+            */
+            reported_lines.forEach((line) => {
+                if (!expectedSet.has(line)) {
+                    newDecorations.push({
+                        range: new monaco.Range(line - 1, 1, line - 1, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: "full-line-highlight-removed",
+                            glyphMarginClassName: "diff-removed-gutter"
                         }
                     });
 
@@ -186,12 +168,66 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
                         lineNumber: line,
                         mustMatch: false,
                         ruleId,
-                        status: 'UNTESTED'
-                    })
+                        status: 'FAILED'
+                    });
+                }
+            });
+
+            /** if reported and expected then
+             * ok ==> must not match red
+             * ruleid ==> must match green
+             * nothing ==> empty
+             */
+            expected_lines.forEach((line) => {
+                if (reportedSet.has(line)) {
+                    newDecorations.push({
+                        range: new monaco.Range(line - 1, 1, line - 1, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: "full-line-highlight-added",
+                            glyphMarginClassName: "diff-added-gutter"
+                        }
+                    });
+
+                    store.jsonResult.parsedTestResults.push({
+                        lineNumber: line,
+                        mustMatch: true,
+                        ruleId,
+                        status: 'SUCCESS',
+                    });
                 }
             });
         });
+
+        /**
+         * if no reported an no expected but indicated with the ignore command (ok: ) then
+         * highlight as green not match
+         */
+        const model = editorRef.value.getModel();
+        const linesCount = model.getLineCount();
+        for (let lineNumber = 1; lineNumber <= linesCount; lineNumber++) {
+            const previousLineContent = model.getLineContent(lineNumber);
+            if (previousLineContent.includes('ok: ') && !expectedSet.has(lineNumber + 1) && !reportedSet.has(lineNumber + 1)) {
+                store.jsonResult.parsedTestResults.push({
+                    mustMatch: false,
+                    lineNumber: lineNumber + 1,
+                    ruleId: null,
+                    status: 'SUCCESS'
+                });
+
+                newDecorations.push({
+                    range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                    options: {
+                        isWholeLine: true,
+                        className: "full-line-highlight-added",
+                        glyphMarginClassName: "diff-added-gutter"
+                    }
+                });
+            }
+        }
     });
+
+    store.jsonResult.parsedTestResults.sort((a, b) => a.lineNumber - b.lineNumber);
 
     // Apply decorations in Monaco Editor
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, newDecorations);
