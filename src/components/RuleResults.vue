@@ -12,37 +12,26 @@
             </div>
             <template v-else>
 
-                <div v-if="store.jsonResult?.scanResults === null">
+                <div v-if="store.jsonResult?.scanResults === null || store.jsonResult.scanResults.results.length === 0">
                     <div class="empty-state">
                         <p>No scan results.</p>
                     </div>
                 </div>
-
-                <div v-else v-for="(run, index) in store.jsonResult.scanResults?.runs" :key="run.tool.driver.name"
+                <div v-else v-for="(result, resultIndex) in store.jsonResult.scanResults.results" :key="result.check_id"
                     class="run-card">
-
-                    <div v-if="run.results.length === 0">
-                        <div class="empty-state">
-                            <p>No scan results found.</p>
+                    <div class="result-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4>Rule: {{ result.check_id.split('tmp.').pop() }}</h4>
                         </div>
-                    </div>
-                    <div v-else v-for="(result, resultIndex) in run.results" :key="result.ruleId" class="result-card">
-                        <div @click="toggleCollapse(resultIndex)"
-                            style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4>Rule: {{ result.ruleId.split('tmp.').pop() }}</h4>
-                        </div>
-                        <div class="result-body" v-show="!collapsedRuns[resultIndex]">
-                            <p>{{ result.message.text }}</p>
-                            <div v-for="location in result.locations"
-                                :key="location.physicalLocation.artifactLocation.uri" class="location-card">
-                                <p><strong>Snippet on line {{ location.physicalLocation.region.startLine
-                                        }}:</strong><br><br>{{ location.physicalLocation.region.snippet.text
-                                    }}
-                                </p>
+                        <div class="result-body">
+                            <p>{{ result.extra.message }}</p>
+                            <div class="location-card">
+                                <p><strong>Snippet on line {{ result.start.line }}:</strong><br><br>{{
+                                    result.extra.lines.trim() }} </p>
                             </div>
                         </div>
-                        <div class="result-footer" v-if="result.codeFlows?.length > 0">
-                            <button class="small" @click="handleShowDataFlows(result)" style="align-self: center;">Show
+                        <div class="result-footer" v-if="result.extra.dataflow_trace">
+                            <button class="small" @click="handleShowDataFlows(result.extra.dataflow_trace)" style="align-self: center;">Show
                                 dataflows</button>
                         </div>
                     </div>
@@ -92,7 +81,6 @@ const showErrorDialog = inject('$showErrorDialog');
 
 const isScanLoading = ref(false);
 const isTestLoading = ref(false);
-const collapsedRuns = ref({});
 const platform = ref(null);
 
 onMounted(async () => {
@@ -150,17 +138,14 @@ async function handleRunBinary() {
     } finally {
         isScanLoading.value = false;
     }
-
-
 }
 
 async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) {
     const scanArgs = [
         'scan',
         `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
-        '--sarif',
+        '--json',
         '--dataflow-traces',
-        `--json-output="${store.safeDir}/tmp/findings.json"`,
         '--experimental',
     ];
 
@@ -172,14 +157,13 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
     }
 
     const scanResponse = await runBinary(`"${binaryPath}"`, scanArgs);
-    if(scanResponse.errorOutput && !scanResponse.output){
+    if (scanResponse.errorOutput && !scanResponse.output) {
         throw new Error(scanResponse.errorOutput);
     }
-
     const scanResults = JSON.parse(scanResponse.output);
 
-    if (extractScanErrors(scanResults).length > 0) {
-        throw extractScanErrors(scanResults).toString()
+    if (scanResults.errors && scanResults.errors.length > 0) {
+        extractScanErrors(scanResults);
     }
 
     store.jsonResult = {
@@ -187,23 +171,12 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
         scanResults,
     };
     isScanLoading.value = false;
-
-    // Initialize collapsed state for each result in each run
-    scanResults.runs.forEach((run) => {
-        run.results.forEach((result, resultIndex) => {
-            collapsedRuns[resultIndex] = false;
-        });
-    });
 }
 
 function extractScanErrors(jsonOutput) {
-    return jsonOutput.runs?.flatMap(run =>
-        run.invocations?.flatMap(invocation =>
-            invocation.toolExecutionNotifications?.filter(notification =>
-                notification.level === 'error' && notification.message?.text
-            ).map(notification => notification.message.text)
-        ) || []
-    ) || [];
+    return jsonOutput.errrors.forEach(error => {
+        showErrorDialog(`${error.level}: ${error.type}`, error.message);        
+    });
 }
 
 async function runBinaryForTests(binaryPath) {
@@ -224,12 +197,8 @@ async function runBinaryForTests(binaryPath) {
     isTestLoading.value = false;
 }
 
-function toggleCollapse(index) {
-    collapsedRuns[index] = !collapsedRuns[index];
-}
-
-function handleShowDataFlows(result) {
-    emit('showDataFlows', result);
+function handleShowDataFlows(dataFlow) {
+    emit('showDataFlows', dataFlow);
 }
 
 function getMatchSatusText(result) {

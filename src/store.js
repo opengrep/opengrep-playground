@@ -8,7 +8,6 @@ export const store = reactive({
     },
     rootDir: '',
     safeDir: '',
-    findingsPath: '',
     languageDetails: null,
     ruleFilePath: '',
     codeSampleFilePath: '',
