@@ -40,7 +40,9 @@
         </div>
 
         <!-- TEST RESULTS -->
-        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">Test Results </h4>
+        <h4 @click="toggleSection('testResults')" style="cursor: pointer;">
+            Test Results ({{ store.jsonResult?.parsedTestResults.filter(test => test.status === 'SUCCESS').length }}/{{ store.jsonResult?.parsedTestResults.length }} Unit Tests Passed)
+        </h4>
         <div style="flex: 1" class="scrollable-section">
             <div v-if="isTestLoading" class="loading-container">
                 <div class="loading-circle"></div>
@@ -116,8 +118,8 @@ async function handleRunBinary() {
     try {
         await runBinaryForTests(binaryPath);
     } catch (error) {
-        showErrorDialog(`Error running tests: Please consult the error.log file at ${store.safeDir}`, error);
         console.error("Error running tests:", error);
+        showErrorDialog(`Error running tests: Please consult the error.log file at ${store.safeDir}`, error);
     } finally {
         isTestLoading.value = false;
     }
@@ -127,9 +129,9 @@ async function handleRunBinary() {
     try {
         await runBinaryForScan(binaryPath, false);
     } catch (error) {
+        console.error("Error running scanning:", error);
         if (!retryAttempted) {
             showErrorDialog(`Error running scanning: Please consult the error.log file at ${store.safeDir}`, error);
-            console.error("Error running scanning:", error);
             return;
         }
 
@@ -152,6 +154,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
     if (platform.value === 'win32') {
         scanArgs.push('-j 1');
     }
+
     if (!runScanWithoutMatchingExplanations) {
         scanArgs.push('--matching-explanations');
     }
@@ -180,7 +183,7 @@ function extractScanErrors(jsonOutput) {
 }
 
 async function runBinaryForTests(binaryPath) {
-    const testArgs = ['test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, '--json', '--experimental'];
+    const testArgs = ['scan --test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, '--json', '--experimental'];
 
     const testResponse = await runBinary(`"${binaryPath}"`, testArgs)
     const testResults = JSON.parse(testResponse.output);

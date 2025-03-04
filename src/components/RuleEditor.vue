@@ -27,6 +27,10 @@ const MONACO_EDITOR_OPTIONS = {
     renderWhitespace: "boundary",
     glyphMargin: true,
     lineNumbersMinChars: 3,
+    scrollbar: {
+        vertical: 'auto',
+        horizontal: 'hidden'
+    }
 };
 const languageMappings = {
     js: { ext: "js", monaco: "javascript" },
