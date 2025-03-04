@@ -30,7 +30,7 @@ Usage:
 
 ## Installation
 
-Download binaries from the latest alpha [release](https://github.com/opengrep/opengrep-playground/releases).
+Download binaries from the latest [release](https://github.com/opengrep/opengrep-playground/releases).
 
 ### MacOS Zip or Dmg Installation
 
