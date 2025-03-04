@@ -154,7 +154,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
     if (platform.value === 'win32') {
         scanArgs.push('-j 1');
     }
-    debugger;
+
     if (!runScanWithoutMatchingExplanations) {
         scanArgs.push('--matching-explanations');
     }

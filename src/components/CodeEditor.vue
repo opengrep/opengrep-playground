@@ -109,8 +109,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
     let newDecorations = [];
-    store.jsonResult.parsedTestResults = [];
-    debugger;
+    store.jsonResult.parsedTestResults = [];    
     let expectedSet = null;
     let reportedSet = null;
 
