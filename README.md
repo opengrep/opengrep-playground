@@ -1,28 +1,3 @@
-<br />
-<p align="center">
-    <a href="https://github.com/opengrep">
-        <picture>
-            <source media="(prefers-color-scheme: light)" srcset="images/opengrep-modern-banner-dark.png">
-            <source media="(prefers-color-scheme: dark)" srcset="images/opengrep-modern-banner-dark.png">
-            <img src="https://raw.githubusercontent.com/opengrep/opengrep-playground/main/images/opengrep-modern-banner-dark.png" width="100%" alt="Opengrep logo"/>
-        </picture>
-    </a>
-</p>
-
-### Welcome to Opengrep Playground
-
-_Opengrep is a fork of Semgrep, created by Semgrep Inc. Opengrep is not affiliated with or endorsed by Semgrep Inc._
-
-Opengrep aims to make secure software development a shared standard by providing open and advanced static code analysis for developers and organizations. Initiated by a collective of AppSec organizations, including Aikido.dev, Arnica, Amplify, Endor, Jit, Kodem, Mobb, and Orca Security, Opengrep is open to any individual or organization to leverage and contribute.
-
-
-This playground is for testing SAST (Static Application Security Testing) security rules written in YAML with corresponding code snippets in various programming languages.  
-It can be used for crafting new SAST security rules and analyzing code snippets.
-
-Usage:
-- Copy and paste your YAML rules and code snippets into the playground
-- Run the script to see the output and debug any issues
-
 ## Installation
 
 Download binaries from the latest [release](https://github.com/opengrep/opengrep-playground/releases).
