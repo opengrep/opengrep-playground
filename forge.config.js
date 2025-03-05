@@ -7,7 +7,7 @@ const isLinux = process.platform === 'linux';
 const isMac = process.platform === 'darwin';
 
 // Ensure binaries are executable before packaging
-const binaries = ['bin/opengrep_manylinux_x86', 'bin/opengrep_musllinux_x86']; // Add all necessary binaries here
+const binaries = ['bin/linux/opengrep-cli']; // Add all necessary binaries here
 binaries.forEach((bin) => {
   const binPath = path.resolve(__dirname, bin);
   if (fs.existsSync(binPath) && fs.statSync(binPath).isFile()) {
@@ -27,7 +27,7 @@ module.exports = {
       OriginalFilename: 'opengrep-playground.exe',
       ProductName: 'Opengrep Playground',
     },
-    icon: path.join(__dirname, 'images', 'icon')
+    icon: path.join(__dirname, 'src', 'images', 'icon')
   },
   rebuildConfig: {},
   makers: [
@@ -44,7 +44,7 @@ module.exports = {
                 '--deb-user': 'root',
                 '--deb-group': 'root',
               },
-              icon: path.join(__dirname, 'images', 'icon.png')
+              icon: path.join(__dirname, 'src', 'images', 'icon.png')
             },
           },
         },
@@ -56,10 +56,9 @@ module.exports = {
               categories: ['Utility'],
               fpmOptions: {
                 '--rpm-attr': [
-                  '755,root,root:bin/opengrep_manylinux_x86',
-                  '755,root,root:bin/opengrep_muslllinux_x86',
+                  '755,root,root:bin/linux/opengrep-cli',
                 ],
-                icon: path.join(__dirname, 'images', 'icon.png')
+                icon: path.join(__dirname, 'src', 'images', 'icon.png')
               },
             },
           },
@@ -72,7 +71,7 @@ module.exports = {
           name: '@electron-forge/maker-dmg',
           config: {
             format: 'ULFO',
-            icon: path.join(__dirname, 'images', 'icon.icns')
+            icon: path.join(__dirname, 'src', 'images', 'icon.icns')
           },
         },
       ]
@@ -90,19 +89,19 @@ module.exports = {
         build: [
           {
             entry: 'src/main.js',
-            config: 'vite.main.config.mjs',
+            config: 'config/vite.main.config.mjs',
             target: 'main',
           },
           {
             entry: 'src/preload.js',
-            config: 'vite.preload.config.mjs',
+            config: 'config/vite.preload.config.mjs',
             target: 'preload',
           },
         ],
         renderer: [
           {
             name: 'main_window',
-            config: 'vite.renderer.config.mjs',
+            config: 'config/vite.renderer.config.mjs',
           },
         ],
       },
