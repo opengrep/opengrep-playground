@@ -17,16 +17,11 @@ Opengrep aims to make secure software development a shared standard by providing
 
 
 This playground is for testing SAST (Static Application Security Testing) security rules written in YAML with corresponding code snippets in various programming languages.  
-The playground can be used for:
-- Testing new SAST security rules
-- Debugging and troubleshooting existing rules
-- Learning and practicing writing security rules
-- Analyzing code snippets for security vulnerabilities
+It can be used for crafting new SAST security rules and analyzing code snippets.
 
 Usage:
 - Copy and paste your YAML rules and code snippets into the playground
 - Run the script to see the output and debug any issues
-- Review the test results and code flow information to refine your rules
 
 ## Installation
 
