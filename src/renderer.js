@@ -58,7 +58,6 @@ configureMonacoYaml(monaco, {
     },
   ],
 });
-
-loader.config({ monaco })
+loader.config({ monaco });
 
 app.mount('#app');
