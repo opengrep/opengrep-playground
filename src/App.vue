@@ -74,23 +74,7 @@ async function handleCodeEditorUpdate() {
       return;
     }
 
-    let codeSampleExtension = store.languageDetails?.extension;
-    if(codeSampleExtension === 'generic') {
-      const guessLang = new GuessLang(); // library with ml model to guess languages only when language in the rule is generic
-      const result = await guessLang.runModel(store.codeEditorCode);
-      const highesLanguageProbability = result[0]?.languageId; // take highest probability language based on the content of the editor
-      if(!highesLanguageProbability){
-        return;
-      }
-
-      store.languageDetails = getLanguage(highesLanguageProbability);
-      codeSampleExtension = store.languageDetails?.extension ?? highesLanguageProbability;
-    }
-    if(!codeSampleExtension){
-      return;
-    }
-
-    const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${codeSampleExtension}`);
+    const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${store.languageDetails?.extension}`);
     await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.codeSampleFilePath = codeSampleFilePath;
 

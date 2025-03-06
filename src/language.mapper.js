@@ -49,7 +49,7 @@ const languageMappings = {
     ml: { ext: "ml", monaco: "ocaml" },
     solidity: { ext: "sol", monaco: "solidity" },
     sol: { ext: "sol", monaco: "solidity" },
-    generic: { ext: 'generic', monaco: "plaintext" },
+    generic: { ext: 'txt', monaco: "plaintext" },
     vue: { ext: "vue", monaco: "javascript" },
     react: { ext: "jsx", monaco: "javascript" },
     jsx: { ext: "jsx", monaco: "javascript" },
