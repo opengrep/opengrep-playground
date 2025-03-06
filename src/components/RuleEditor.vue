@@ -67,7 +67,7 @@ function handleCodeChange(code) {
 };
 
 function getLanguageDetails(yamlContent) {
-    const languages = yamlContent?.languages // Take the first rule
+    const languages = yamlContent?.languages
     if (!languages || languages.length === 0) {
         return null
     }
