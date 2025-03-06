@@ -13,8 +13,8 @@ const emit = defineEmits(['codeEditorUpdated']);
 
 const MONACO_EDITOR_OPTIONS = {
     automaticLayout: true,
-    formatOnType: true,
-    formatOnPaste: true,
+    formatOnType: false,
+    formatOnPaste: false,
     wordBasedSuggestionsOnlySameLanguage: true,
     semanticHighlighting: { enabled: 'configuredByTheme' },
     readOnly: false,

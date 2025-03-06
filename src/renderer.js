@@ -59,6 +59,7 @@ configureMonacoYaml(monaco, {
   ],
 });
 
-loader.config({ monaco })
+loader.config({ monaco });
+window.loadGuesslang.load();
 
 app.mount('#app');

@@ -17,4 +17,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   showErrorDialog: (errorMessage, error = null) => ipcRenderer.invoke("show-error-dialog", errorMessage, error),
 });
 
+// Safe insertion of Guesslang.js script
+// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+contextBridge.exposeInMainWorld("loadGuesslang", {
+  load: () => {
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = "https://cdn.jsdelivr.net/npm/guesslang-js@latest/dist/lib/guesslang.min.js";
+      script.async = true;
+      script.onload = () => console.log("Guesslang.js loaded successfully!");
+      script.onerror = () => console.error("Failed to load Guesslang.js");
+      document.head.appendChild(script);
+  }
+});
+
 

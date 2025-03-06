@@ -31,7 +31,8 @@
                             </div>
                         </div>
                         <div class="result-footer" v-if="result.extra.dataflow_trace">
-                            <button class="small" @click="handleShowDataFlows(result.extra.dataflow_trace)" style="align-self: center;">Show
+                            <button class="small" @click="handleShowDataFlows(result.extra.dataflow_trace)"
+                                style="align-self: center;">Show
                                 dataflows</button>
                         </div>
                     </div>
@@ -41,7 +42,8 @@
 
         <!-- TEST RESULTS -->
         <h4 @click="toggleSection('testResults')" style="cursor: pointer;">
-            Test Results ({{ store.jsonResult?.parsedTestResults.filter(test => test.status === 'SUCCESS').length }}/{{ store.jsonResult?.parsedTestResults.length }} Unit Tests Passed)
+            Test Results ({{ store.jsonResult?.parsedTestResults.filter(test => test.status === 'SUCCESS').length }}/{{
+            store.jsonResult?.parsedTestResults.length }} Unit Tests Passed)
         </h4>
         <div style="flex: 1" class="scrollable-section">
             <div v-if="isTestLoading" class="loading-container">
@@ -178,7 +180,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
 
 function extractScanErrors(jsonOutput) {
     return jsonOutput.errrors.forEach(error => {
-        showErrorDialog(`${error.level}: ${error.type}`, error.message);        
+        showErrorDialog(`${error.level}: ${error.type}`, error.message);
     });
 }
 

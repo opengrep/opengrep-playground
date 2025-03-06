@@ -11,7 +11,10 @@ export const store = reactive({
     languageDetails: null,
     ruleFilePath: '',
     codeSampleFilePath: '',
-    ruleEditorCode: '',
+    ruleEditorCode: {
+        originalRule: '',
+        normalizedRule: ''
+    },
     codeEditorCode: '',
     codeEditorDebugLocation: null,
     mustNotMatchTestCases: [],

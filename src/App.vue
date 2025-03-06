@@ -43,6 +43,8 @@ import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
 import { store } from './store';
+import { getLanguage } from './language.mapper';
+
 
 const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
@@ -68,11 +70,27 @@ function handleShowDataFlows(dataFlows) {
 
 async function handleCodeEditorUpdate() {
   try {
-    if (store.ruleEditorCode === '') {
+    if (store.ruleEditorCode.normalizedRule === '') {
       return;
     }
 
-    const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${store.languageDetails?.extension ?? 'txt'}`);
+    let codeSampleExtension = store.languageDetails?.extension;
+    if(codeSampleExtension === 'generic') {
+      const guessLang = new GuessLang(); // library with ml model to guess languages only when language in the rule is generic
+      const result = await guessLang.runModel(store.codeEditorCode);
+      const highesLanguageProbability = result[0]?.languageId; // take highest probability language based on the content of the editor
+      if(!highesLanguageProbability){
+        return;
+      }
+
+      store.languageDetails = getLanguage(highesLanguageProbability);
+      codeSampleExtension = store.languageDetails?.extension ?? highesLanguageProbability;
+    }
+    if(!codeSampleExtension){
+      return;
+    }
+
+    const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${codeSampleExtension}`);
     await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.codeSampleFilePath = codeSampleFilePath;
 
@@ -85,20 +103,12 @@ async function handleCodeEditorUpdate() {
 async function handleRuleEditorUpdate() {
   try {
     const ruleFilePath = await joinPath(store.safeDir, "tmp", 'untitled_rule.yaml');
-    await writeFile(ruleFilePath, store.ruleEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
+    await writeFile(ruleFilePath, store.ruleEditorCode.normalizedRule, { flag: 'w' }); // 'w' flag to create or overwrite the file
     store.ruleFilePath = ruleFilePath;
     await handleCodeEditorUpdate();
   } catch (error) {
     showErrorDialog(`Error saving code: ${error}`, error);
     console.error("Error saving code:", error);
-  }
-}
-
-function handleHistoryClick(entry) {
-  if (entry.editorType === 'code-editor') {
-    store.codeEditorCode = entry.content;
-  } else if (entry.editorType === 'rule-editor') {
-    store.ruleEditorCode = entry.content;
   }
 }
 
