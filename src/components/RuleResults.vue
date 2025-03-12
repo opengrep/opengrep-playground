@@ -93,7 +93,7 @@ onMounted(async () => {
 
 
 async function handleRunBinary() {
-    if (!store.ruleEditorCode) return;
+    if (!store.ruleEditorCode || store.disableBinaryRun) return;
 
     isScanLoading.value = true;
     isTestLoading.value = true;

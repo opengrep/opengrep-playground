@@ -49,17 +49,30 @@ watch(() => store.ruleEditorCode, (newCode) => {
 function handleCodeChange(code) {
     const parsedYamlCode = yaml.load(code);
     if (!parsedYamlCode || !parsedYamlCode.rules || parsedYamlCode.rules.length === 0) {
+        store.ruleEditorCode = {
+            originalRule: code,
+            normalizedRule: code
+        };
+        store.disableBinaryRun = true;
         return null;
     }
-    const { paths, ...rest } = parsedYamlCode.rules[0];
 
-    store.languageDetails = getLanguageDetails(rest);
+    const rulesArray = parsedYamlCode.rules.reduce((accumulator, rule) => {
+        const { paths, ...rest } = rule;
+
+        const detectedLanguage = getLanguageDetails(rest);
+        if (detectedLanguage) {
+            store.languageDetails = detectedLanguage
+        }
+
+        accumulator.push(rest)
+        return accumulator;
+    }, []);
 
     store.ruleEditorCode = {
         originalRule: code,
         normalizedRule: yaml.dump({
-            ...parsedYamlCode,
-            rules: [{ ...rest }]
+            rules: rulesArray
         })
     };
     store.disableBinaryRun = !store.languageDetails;
@@ -72,7 +85,7 @@ function getLanguageDetails(yamlContent) {
         return null
     }
 
-    if(languages.length > 1){
+    if (languages.length > 1) {
         return getLanguage('generic');
     }
 
