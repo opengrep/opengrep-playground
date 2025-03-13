@@ -10,7 +10,7 @@
     </div>
     <div v-if="isOpen" class="node-children">
       <TreeView v-for="(child, index) in data?.children" :key="index" :data="child"
-        @scrollToCodeSnippet="scrollToCodeSnippet($event, data?.matches[0]?.start.line)"
+        @scrollToCodeSnippet="scrollToCodeSnippet($event, child?.matches[0]?.start.line)"
         @node-hover="handleNodeHover" />
     </div>
   </div>
@@ -65,7 +65,7 @@ const handleNodeHover = (location) => {
 
 const scrollToCodeSnippet = (event, lineNumber) => {
   event.stopPropagation();
-  emit('scrollToCodeSnippet', event, lineNumber ?? props.data?.matches?.[0]?.start?.line);
+  emit('scrollToCodeSnippet', event, lineNumber);
 
 }
 </script>

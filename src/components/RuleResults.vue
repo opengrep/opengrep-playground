@@ -231,7 +231,7 @@ function scrollToCodeSnippet(lineNumber) {
 
 .result-footer {
     display: flex;
-    justify-content: space-between;
+    gap: 16px;
 }
 
 .results-container {
