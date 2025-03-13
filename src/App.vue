@@ -25,13 +25,14 @@
 
       <!-- Results Viewer -->
       <div class="column-view resizable" style="flex-grow: 1;">
-        <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows" />
+        <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows"
+          @scrollToCodeSnippet="handleScrollToCodeSnippet" />
         <div class="resize-handle" @mousedown="startResize($event, 2)"></div>
       </div>
     </div>
     <!-- Debug Rule Area -->
     <div class="meta-section">
-      <DebugSection style="flex: 3;" class="scroll-container"/>
+      <DebugSection style="flex: 3;" class="scroll-container" @scrollToCodeSnippet="handleScrollToCodeSnippet" />
     </div>
   </div>
 </template>
@@ -43,8 +44,6 @@ import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
 import { store } from './store';
-import { getLanguage } from './language.mapper';
-
 
 const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
@@ -116,6 +115,12 @@ function stopResize() {
   document.removeEventListener('mousemove', resizeColumn);
   document.removeEventListener('mouseup', stopResize);
   resizingColumn.value = null;
+}
+
+function handleScrollToCodeSnippet(lineNumber) {
+  if (codeEditor.value) {
+    codeEditor.value.scrollToCodeSnippet(lineNumber)
+  }
 }
 </script>
 
@@ -222,13 +227,13 @@ $secondary-color: #2ecc71;
 }
 
 .empty-state {
-    font-family: monospace;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #7f8c8d;
-    font-size: 14px;
-    font-style: italic;
+  font-family: monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #7f8c8d;
+  font-size: 14px;
+  font-style: italic;
 }
 </style>

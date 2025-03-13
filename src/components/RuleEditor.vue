@@ -72,7 +72,7 @@ function getLanguageDetails(yamlContent) {
         return null
     }
 
-    if(languages.length > 1){
+    if (!getLanguage(languages[0]) && languages.length > 1) {
         return getLanguage('generic');
     }
 
