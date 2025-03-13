@@ -1,7 +1,7 @@
 <template>
     <div class="results-header">
         <h3>Results</h3>
-        <button @click="handleRunBinary" :class="{ 'disabled': store.disableBinaryRun }">Evaluate</button>
+        <button @click="handleRunBinary" :class="{ 'disabled': store.disableEvalButton }">Evaluate</button>
     </div>
 
     <div class="results-container">
@@ -97,7 +97,7 @@ onMounted(async () => {
 
 
 async function handleRunBinary() {
-    if (!store.ruleEditorCode) return;
+    if (!store.ruleEditorCode || store.disableEvalButton) return;
 
     isScanLoading.value = true;
     isTestLoading.value = true;
