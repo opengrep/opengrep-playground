@@ -109,7 +109,7 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     if (!rawTestResults || !Object.entries(rawTestResults.results).length) return;
 
     let newDecorations = [];
-    store.jsonResult.parsedTestResults = [];    
+    store.jsonResult.parsedTestResults = [];
     let expectedSet = null;
     let reportedSet = null;
 
@@ -324,8 +324,14 @@ function highlightDebugLocationCode(locations) {
     componentState.debugLocationCodeDecorations = editorRef.value.deltaDecorations(componentState.debugLocationCodeDecorations, newDecorations);
 }
 
+function scrollToCodeSnippet(lineNumber) {
+    if (!editorRef.value) return;
+    editorRef.value.revealLineInCenter(lineNumber,0);
+    editorRef.value.setPosition({ lineNumber, column: 1 });
+}
+
 // Expose the determineCodeFlowInformation function to the parent component
-defineExpose({ determineCodeFlowInformation });
+defineExpose({ determineCodeFlowInformation, scrollToCodeSnippet });
 
 </script>
 <style>
