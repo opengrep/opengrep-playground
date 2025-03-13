@@ -2,16 +2,10 @@
   <div class="tree-node">
     <div v-if="data" class="node-header" @click="toggle" @mouseover="handleMouseOver" @mouseleave="handleMouseLeave">
       <span v-if="hasChildren" class="toggle-icon">{{ isOpen ? "▼" : "▶" }}</span>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="node-name">{{ data?.name }}</span>
-        <font-awesome-icon :icon="['far', 'file-code']" size="xl"
-          @click="scrollToCodeSnippet($event, data?.matches[0]?.start.line)" />
-      </div>
+      <span class="node-name">{{ data?.name }}</span>
     </div>
     <div v-if="isOpen" class="node-children">
-      <TreeView v-for="(child, index) in data?.children" :key="index" :data="child"
-        @scrollToCodeSnippet="scrollToCodeSnippet($event, data?.matches[0]?.start.line)"
-        @node-hover="handleNodeHover" />
+      <TreeView v-for="(child, index) in data?.children" :key="index" :data="child" @node-hover="handleNodeHover" />
     </div>
   </div>
 </template>
@@ -23,7 +17,7 @@ const props = defineProps({
   data: Object,
 });
 
-const emit = defineEmits(["node-hover", 'scrollToCodeSnippet']);
+const emit = defineEmits(["node-hover"]);
 
 const isOpen = ref(true);
 const hasChildren = computed(() => props.data?.children && props.data.children.length > 0);
@@ -62,12 +56,6 @@ const handleNodeHover = (location) => {
   hoveredChildData.value = location; // Store child node location
   emit("node-hover", hoveredChildData.value);
 };
-
-const scrollToCodeSnippet = (event, lineNumber) => {
-  event.stopPropagation();
-  emit('scrollToCodeSnippet', event, lineNumber ?? props.data?.matches?.[0]?.start?.line);
-
-}
 </script>
 
 <style lang="scss" scoped>

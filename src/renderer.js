@@ -9,13 +9,8 @@ import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker"
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker"
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker"
 import YamlWorker from './yaml.worker?worker';
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { far } from '@fortawesome/free-regular-svg-icons';
 
 const app = createApp(App);
-library.add(far);
-app.component('font-awesome-icon', FontAwesomeIcon);
 
 app.provide('$electronAPI', window.electronAPI);
 app.provide('$getPlatform', window.electronAPI.getPlatform);

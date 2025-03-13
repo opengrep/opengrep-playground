@@ -2,7 +2,7 @@
   <div class="inspect-rule">
     <h3 class="title">Inspect Rule</h3>
     <div v-if="!parsedData" class="empty-state">No debugging information available.</div>
-    <TreeView v-else :data="parsedData" @node-hover="handleHover" @scrollToCodeSnippet="handleScrollToCodeSnippet" />
+    <TreeView v-else :data="parsedData" @node-hover="handleHover" />
   </div>
 </template>
 
@@ -12,7 +12,6 @@ import TreeView from "./TreeView.vue";
 import { store } from '../store'
 
 const parsedData = ref(null);
-const emit = defineEmits(['scrollToCodeSnippet']);
 
 watch(() => store.jsonResult.scanResults, (scanResults) => {
   generateDebuggingInfo(scanResults);
@@ -21,7 +20,7 @@ watch(() => store.jsonResult.scanResults, (scanResults) => {
 
 async function generateDebuggingInfo(scanResults) {
   if (!scanResults) return;
-
+  
   const explanations = scanResults.explanations || [];
   parsedData.value = parseExplanation(explanations);
 }
@@ -101,10 +100,6 @@ function formatOpName(op) {
 
 function handleHover(debugCodeLocation) {
   store.codeEditorDebugLocation = debugCodeLocation;
-}
-
-function handleScrollToCodeSnippet(event, lineNumber) {
-    emit('scrollToCodeSnippet', lineNumber);
 }
 
 </script>

@@ -26,18 +26,14 @@
                         <div class="result-body">
                             <p>{{ result.extra.message }}</p>
                             <div class="location-card">
-                                <p><strong>Snippet on line {{ result.start.line
-                                        }}:</strong><br><br>{{result.extra.lines.trim() }} </p>
+                                <p><strong>Snippet on line {{ result.start.line }}:</strong><br><br>{{
+                                    result.extra.lines.trim() }} </p>
                             </div>
                         </div>
-                        <div class="result-footer">
-                            <button v-if="result.extra.dataflow_trace" class="small"
-                                @click="handleShowDataFlows(result.extra.dataflow_trace)"
+                        <div class="result-footer" v-if="result.extra.dataflow_trace">
+                            <button class="small" @click="handleShowDataFlows(result.extra.dataflow_trace)"
                                 style="align-self: center;">Show
                                 dataflows</button>
-                            <button class="small" @click="scrollToCodeSnippet(result.start.line)">
-                                Go to code snippet
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -78,9 +74,9 @@
 
 <script setup>
 import { inject, defineEmits, ref, onMounted } from 'vue';
-import { store } from '../store';
+import { store } from '../store'
 
-const emit = defineEmits(['showDataFlows', 'scrollToCodeSnippet']);
+const emit = defineEmits(['showDataFlows']);
 
 const joinPath = inject('$joinPath');
 const runBinary = inject('$runBinary');
@@ -215,11 +211,7 @@ function getMatchSatusText(result) {
         return 'Untested match on';
     }
     return result.mustMatch ? 'Must match' : 'Must not match';
-}
-
-function scrollToCodeSnippet(lineNumber) {
-    emit('scrollToCodeSnippet', lineNumber);
-}
+} 
 </script>
 
 <style scoped>
@@ -227,11 +219,6 @@ function scrollToCodeSnippet(lineNumber) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.result-footer {
-    display: flex;
-    justify-content: space-between;
 }
 
 .results-container {
