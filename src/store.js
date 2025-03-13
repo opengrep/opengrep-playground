@@ -18,5 +18,5 @@ export const store = reactive({
     codeEditorCode: '',
     codeEditorDebugLocation: null,
     mustNotMatchTestCases: [],
-    disableBinaryRun: true,
+    disableEvalButton: true,
 });

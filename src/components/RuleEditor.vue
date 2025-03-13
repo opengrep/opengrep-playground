@@ -49,11 +49,14 @@ watch(() => store.ruleEditorCode, (newCode) => {
 function handleCodeChange(code) {
     const parsedYamlCode = yaml.load(code);
     if (!parsedYamlCode || !parsedYamlCode.rules || parsedYamlCode.rules.length === 0) {
+        // when parsed yaml is empty, reset the normalized rule and original rule and disable binary run
         store.ruleEditorCode = {
             originalRule: code,
             normalizedRule: code
         };
-        store.disableBinaryRun = true;
+        // Disable the eval button if the rule editor is empty. 
+        // Running the binary by clicking on the evaluate button doesn't make sense when no rule is configured. 
+        store.disableEvalButton = true;
         return null;
     }
 
@@ -75,7 +78,9 @@ function handleCodeChange(code) {
             rules: rulesArray
         })
     };
-    store.disableBinaryRun = !store.languageDetails;
+
+    // Enable the eval button if the rule editor is not empty
+    store.disableEvalButton = false;
     emit('ruleEditorUpdated');
 };
 
