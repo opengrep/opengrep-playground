@@ -183,7 +183,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
 }
 
 function extractScanErrors(jsonOutput) {
-    return jsonOutput.errrors.forEach(error => {
+    return jsonOutput?.errors?.forEach(error => {
         showErrorDialog(`${error.level}: ${error.type}`, error.message);
     });
 }
