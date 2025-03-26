@@ -44,7 +44,7 @@ jobs:
         run: |
           # Fetch the latest successful run ID for the workflow
           # $RUN_ID = gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId'
-          echo "run_id=14066735207" >> $env:GITHUB_ENV
+          echo "run_id=14085905786" >> $env:GITHUB_ENV
 
       - name: Output Run ID
         run: |
@@ -98,7 +98,7 @@ jobs:
         run: |
           # Fetch the latest successful run ID for the workflow
           # RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "run_id=14066735207" >> $GITHUB_OUTPUT
+          echo "run_id=14085905786" >> $GITHUB_OUTPUT
 
       - name: Output Run ID
         run: |
@@ -162,7 +162,7 @@ jobs:
         run: |
           # Fetch the latest successful run ID for the workflow
           # RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "run_id=14066735207" >> $GITHUB_OUTPUT
+          echo "run_id=14085905786" >> $GITHUB_OUTPUT
 
       - name: Output Run ID
         run: |
