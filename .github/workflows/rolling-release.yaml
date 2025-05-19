@@ -3,12 +3,7 @@ name: Rolling Release Opengrep Playground App
 on:
   push:
     branches:
-      - main   
-
-  # TESTING ONLY
-  pull_request:
-    branches:
-      - main
+      - main    
       
   workflow_dispatch:
     inputs:
@@ -43,8 +38,8 @@ jobs:
         id: get-run-id
         run: |
           # Fetch the latest successful run ID for the workflow
-          # $RUN_ID = gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId'
-          echo "run_id=14085905786" >> $env:GITHUB_ENV
+          $RUN_ID = gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          echo "run_id=$RUN_ID" >> $env:GITHUB_ENV
 
       - name: Output Run ID
         run: |
@@ -97,8 +92,8 @@ jobs:
         id: get-run-id
         run: |
           # Fetch the latest successful run ID for the workflow
-          # RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "run_id=14085905786" >> $GITHUB_OUTPUT
+          RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
       - name: Output Run ID
         run: |
@@ -161,8 +156,8 @@ jobs:
         id: get-run-id
         run: |
           # Fetch the latest successful run ID for the workflow
-          # RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "run_id=14085905786" >> $GITHUB_OUTPUT
+          RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
       - name: Output Run ID
         run: |
