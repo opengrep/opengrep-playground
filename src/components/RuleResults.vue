@@ -157,10 +157,6 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
         '--experimental',
     ];
 
-    if (platform.value === 'win32') {
-        scanArgs.push('-j 1');
-    }
-
     if (!runScanWithoutMatchingExplanations) {
         scanArgs.push('--matching-explanations');
     }
