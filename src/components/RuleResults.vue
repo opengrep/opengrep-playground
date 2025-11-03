@@ -155,6 +155,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
         '--json',
         '--dataflow-traces',
         '--experimental',
+        '--taint-intrafile',
     ];
 
     if (!runScanWithoutMatchingExplanations) {
@@ -185,7 +186,9 @@ function extractScanErrors(jsonOutput) {
 }
 
 async function runBinaryForTests(binaryPath) {
-    const testArgs = ['scan --test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`, '--json', '--experimental'];
+    const testArgs =
+      ['scan --test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
+       '--json', '--experimental', '--taint-intrafile'];
 
     const testResponse = await runBinary(`"${binaryPath}"`, testArgs)
     const testResults = JSON.parse(testResponse.output);
