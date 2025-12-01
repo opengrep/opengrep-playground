@@ -1,8 +1,8 @@
 {
   "name": "opengrep-playground",
   "productName": "opengrep-playground",
-  "version": "1.11.5",
-  "description": "Opengrep Playgorund Editor",
+  "version": "1.12.0",
+  "description": "Opengrep Playground Editor",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
