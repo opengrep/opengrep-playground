@@ -19,6 +19,7 @@ const languageMappings = {
     rs: { ext: "rs", monaco: "rust" },
     csharp: { ext: "cs", monaco: "csharp" },
     cs: { ext: "cs", monaco: "csharp" },
+    vb: { ext: "vb", monaco: "vb" },
     terraform: { ext: "tf", monaco: "terraform" },
     tf: { ext: "tf", monaco: "terraform" },
     yaml: { ext: "yaml", monaco: "yaml" },
