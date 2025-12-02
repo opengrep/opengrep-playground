@@ -180,9 +180,9 @@ app.whenReady().then(() => {
       if (!!error) {
         fs.writeFileSync(errorLogPath, `${error}\n\n`, { flag: 'a' });
       }
-      dialog.showErrorBox("Somthing went wrong", errorMessage);
+      dialog.showErrorBox("Something went wrong", errorMessage);
     } catch (error) {
-      dialog.showErrorBox("Somthing went wrong", error.message);
+      dialog.showErrorBox("Something went wrong", error.message);
       console.error(`Error writing error log: ${error.message}`);
     }
   });
