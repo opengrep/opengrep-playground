@@ -42,7 +42,7 @@ const languageMappings = {
     bash: { ext: "bash", monaco: "shell" },
     apex: { ext: "cls", monaco: "apex" },
     cls: { ext: "cls", monaco: "apex" },
-    closure: { ext: "clj", monaco: "clojure" },
+    clojure: { ext: "clj", monaco: "clojure" },
     clj: { ext: "clj", monaco: "clojure" },
     libsonnet: { ext: "jsonnet", monaco: "jsonnet" },
     jsonnet: { ext: "jsonnet", monaco: "jsonnet" },
