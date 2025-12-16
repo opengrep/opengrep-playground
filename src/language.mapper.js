@@ -59,7 +59,7 @@ const languageMappings = {
 };
 
 export function getLanguage(language) {
-    const mappedLanguage =  languageMappings[language];
+    const mappedLanguage =  languageMappings[language.toLowerCase()];
 
     if(!mappedLanguage){
         return;
