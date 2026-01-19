@@ -17,9 +17,8 @@ binaries.forEach((bin) => {
 
 module.exports = {
   packagerConfig: {
-    asar: {
-      unpack: '**/bin/**', // Ensure binaries are outside ASAR
-    },
+    asar: true, // Enable ASAR packaging
+    // Binaries are already outside ASAR via extraResource, no need to unpack them
     extraResource: [path.join(__dirname, 'bin')], // Include binary folder
     win32metadata: {
       CompanyName: 'Opengrep',
