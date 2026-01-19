@@ -52,7 +52,20 @@ jobs:
               run: ls -R bin/windows
 
             - name: Build for Windows
-              run: npm run make-win || exit 1
+              shell: pwsh
+              run: |
+                $ErrorActionPreference = "Continue"
+                npm run make-win 2>&1 | Tee-Object -FilePath build-output.log
+                $exitCode = $LASTEXITCODE
+                $output = Get-Content build-output.log -Raw -ErrorAction SilentlyContinue
+                if ($output -match "FATAL ERROR: Ineffective mark-compacts|JavaScript heap out of memory|Allocation failed") {
+                  Write-Host "::error::JavaScript heap out of memory error detected"
+                  exit 1
+                }
+                if ($exitCode -ne 0) {
+                  Write-Host "::error::Build failed with exit code $exitCode"
+                  exit $exitCode
+                }
 
     build-macos:
         runs-on: macos-latest
@@ -101,7 +114,19 @@ jobs:
               run: ls -R bin/macos
 
             - name: Build for macOS
-              run: npm run make-mac || exit 1
+              run: |
+                set +e
+                npm run make-mac 2>&1 | tee build-output.log
+                EXIT_CODE=${PIPESTATUS[0]}
+                set -e
+                if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+                  echo "::error::JavaScript heap out of memory error detected"
+                  exit 1
+                fi
+                if [ $EXIT_CODE -ne 0 ]; then
+                  echo "::error::Build failed with exit code $EXIT_CODE"
+                  exit $EXIT_CODE
+                fi
 
     build-linux:
         runs-on: ubuntu-latest
@@ -153,4 +178,16 @@ jobs:
               run: ls -R bin/linux
 
             - name: Build for Linux
-              run: npm run make-linux || exit 1
+              run: |
+                set +e
+                npm run make-linux 2>&1 | tee build-output.log
+                EXIT_CODE=${PIPESTATUS[0]}
+                set -e
+                if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+                  echo "::error::JavaScript heap out of memory error detected"
+                  exit 1
+                fi
+                if [ $EXIT_CODE -ne 0 ]; then
+                  echo "::error::Build failed with exit code $EXIT_CODE"
+                  exit $EXIT_CODE
+                fi
