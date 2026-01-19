@@ -3,17 +3,17 @@ name: Rolling Release Opengrep Playground App
 on:
   push:
     branches:
-      - main    
-      
+      - main
+
   workflow_dispatch:
     inputs:
-     tag:
+      tag:
         description: the tag to use
         required: true
         type: string
 
 permissions:
-  contents: write 
+  contents: write
 
 jobs:
   build-windows:
@@ -25,11 +25,11 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: 18
+          node-version: ">=20"
 
       - name: Install Dependencies
         run: npm ci
-      
+
       - name: Authenticate GitHub CLI
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
@@ -44,11 +44,11 @@ jobs:
       - name: Output Run ID
         run: |
           echo "The latest successful run ID is: ${{ env.run_id }}"
-      
+
       - name: Download Artifact
         run: |
           gh run download ${{ env.run_id }} -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
-        
+
       - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
         run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
 
@@ -79,7 +79,7 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: 18
+          node-version: ">=20"
 
       - name: Install Dependencies
         run: npm ci
@@ -140,7 +140,7 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: 18
+          node-version: ">=20"
 
       - name: Install Dependencies
         run: npm ci
@@ -167,7 +167,7 @@ jobs:
         run: |
           gh run download ${{ steps.get-run-id.outputs.run_id }} \
             -R opengrep/opengrep -n opengrep-core-x86
-      
+
       - name: Unzip opengrep-core-x86
         run: mkdir -p opengrep-core-x86 && tar -xzf artifacts.tgz -C opengrep-core-x86
 
@@ -178,7 +178,7 @@ jobs:
         run: mv bin/linux/opengrep-core bin/linux/opengrep-cli
 
       - name: Show Contents of bin/linux
-        run: ls -R bin/linux    
+        run: ls -R bin/linux
 
       - name: Build for Linux
         run: npm run make-linux
@@ -208,8 +208,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          fetch-depth: 0  # Required for commit history analysis
-
+          fetch-depth: 0 # Required for commit history analysis
 
       - name: Download Windows Build (ZIP)
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
@@ -222,7 +221,7 @@ jobs:
         with:
           name: macos-zip
           path: out/make/zip/darwin/arm64
-      
+
       - name: Download macOS DMG
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
