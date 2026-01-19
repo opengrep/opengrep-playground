@@ -62,7 +62,7 @@ jobs:
         run: ls -R bin/windows
 
       - name: Build for Windows
-        run: npm run make-win
+        run: npm run make-win || exit 1
 
       - name: Upload Windows Artifacts (ZIP)
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -117,7 +117,7 @@ jobs:
         run: ls -R bin/macos
 
       - name: Build for macOS
-        run: npm run make-mac
+        run: npm run make-mac || exit 1
 
       - name: Upload macOS DMG
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -181,7 +181,7 @@ jobs:
         run: ls -R bin/linux
 
       - name: Build for Linux
-        run: npm run make-linux
+        run: npm run make-linux || exit 1
 
       - name: Upload Linux DEB
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
