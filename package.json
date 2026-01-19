@@ -5,7 +5,7 @@
   "description": "Opengrep Playground Editor",
   "main": ".vite/build/main.js",
   "engines": {
-    "node": ">=20"
+    "node": 22
   },
   "scripts": {
     "start": "electron-forge start",

@@ -15,7 +15,7 @@ jobs:
             - name: Set Up Node.js
               uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
               with:
-                  node-version: ">=20"
+                  node-version: 22
 
             - name: Install Dependencies
               run: npm ci
@@ -54,18 +54,18 @@ jobs:
             - name: Build for Windows
               shell: pwsh
               run: |
-                $ErrorActionPreference = "Continue"
-                npm run make-win 2>&1 | Tee-Object -FilePath build-output.log
-                $exitCode = $LASTEXITCODE
-                $output = Get-Content build-output.log -Raw -ErrorAction SilentlyContinue
-                if ($output -match "FATAL ERROR: Ineffective mark-compacts|JavaScript heap out of memory|Allocation failed") {
-                  Write-Host "::error::JavaScript heap out of memory error detected"
-                  exit 1
-                }
-                if ($exitCode -ne 0) {
-                  Write-Host "::error::Build failed with exit code $exitCode"
-                  exit $exitCode
-                }
+                  $ErrorActionPreference = "Continue"
+                  npm run make-win 2>&1 | Tee-Object -FilePath build-output.log
+                  $exitCode = $LASTEXITCODE
+                  $output = Get-Content build-output.log -Raw -ErrorAction SilentlyContinue
+                  if ($output -match "FATAL ERROR: Ineffective mark-compacts|JavaScript heap out of memory|Allocation failed") {
+                    Write-Host "::error::JavaScript heap out of memory error detected"
+                    exit 1
+                  }
+                  if ($exitCode -ne 0) {
+                    Write-Host "::error::Build failed with exit code $exitCode"
+                    exit $exitCode
+                  }
 
     build-macos:
         runs-on: macos-latest
@@ -76,7 +76,7 @@ jobs:
             - name: Set Up Node.js
               uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
               with:
-                  node-version: ">=20"
+                  node-version: 22
 
             - name: Install Dependencies
               run: npm ci
@@ -115,18 +115,18 @@ jobs:
 
             - name: Build for macOS
               run: |
-                set +e
-                npm run make-mac 2>&1 | tee build-output.log
-                EXIT_CODE=${PIPESTATUS[0]}
-                set -e
-                if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
-                  echo "::error::JavaScript heap out of memory error detected"
-                  exit 1
-                fi
-                if [ $EXIT_CODE -ne 0 ]; then
-                  echo "::error::Build failed with exit code $EXIT_CODE"
-                  exit $EXIT_CODE
-                fi
+                  set +e
+                  npm run make-mac 2>&1 | tee build-output.log
+                  EXIT_CODE=${PIPESTATUS[0]}
+                  set -e
+                  if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+                    echo "::error::JavaScript heap out of memory error detected"
+                    exit 1
+                  fi
+                  if [ $EXIT_CODE -ne 0 ]; then
+                    echo "::error::Build failed with exit code $EXIT_CODE"
+                    exit $EXIT_CODE
+                  fi
 
     build-linux:
         runs-on: ubuntu-latest
@@ -137,7 +137,7 @@ jobs:
             - name: Set Up Node.js
               uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
               with:
-                  node-version: ">=20"
+                  node-version: 22
 
             - name: Install Dependencies
               run: npm ci
@@ -179,15 +179,15 @@ jobs:
 
             - name: Build for Linux
               run: |
-                set +e
-                npm run make-linux 2>&1 | tee build-output.log
-                EXIT_CODE=${PIPESTATUS[0]}
-                set -e
-                if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
-                  echo "::error::JavaScript heap out of memory error detected"
-                  exit 1
-                fi
-                if [ $EXIT_CODE -ne 0 ]; then
-                  echo "::error::Build failed with exit code $EXIT_CODE"
-                  exit $EXIT_CODE
-                fi
+                  set +e
+                  npm run make-linux 2>&1 | tee build-output.log
+                  EXIT_CODE=${PIPESTATUS[0]}
+                  set -e
+                  if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+                    echo "::error::JavaScript heap out of memory error detected"
+                    exit 1
+                  fi
+                  if [ $EXIT_CODE -ne 0 ]; then
+                    echo "::error::Build failed with exit code $EXIT_CODE"
+                    exit $EXIT_CODE
+                  fi
