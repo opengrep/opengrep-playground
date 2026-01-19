@@ -4,6 +4,9 @@
   "version": "1.15.1",
   "description": "Opengrep Playground Editor",
   "main": ".vite/build/main.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
