@@ -25,7 +25,7 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: ">=20"
+          node-version: 22
 
       - name: Install Dependencies
         run: npm ci
@@ -62,7 +62,20 @@ jobs:
         run: ls -R bin/windows
 
       - name: Build for Windows
-        run: npm run make-win
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          npm run make-win 2>&1 | Tee-Object -FilePath build-output.log
+          $exitCode = $LASTEXITCODE
+          $output = Get-Content build-output.log -Raw -ErrorAction SilentlyContinue
+          if ($output -match "FATAL ERROR: Ineffective mark-compacts|JavaScript heap out of memory|Allocation failed") {
+            Write-Host "::error::JavaScript heap out of memory error detected"
+            exit 1
+          }
+          if ($exitCode -ne 0) {
+            Write-Host "::error::Build failed with exit code $exitCode"
+            exit $exitCode
+          }
 
       - name: Upload Windows Artifacts (ZIP)
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -79,7 +92,7 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: ">=20"
+          node-version: 22
 
       - name: Install Dependencies
         run: npm ci
@@ -117,7 +130,19 @@ jobs:
         run: ls -R bin/macos
 
       - name: Build for macOS
-        run: npm run make-mac
+        run: |
+          set +e
+          npm run make-mac 2>&1 | tee build-output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+            echo "::error::JavaScript heap out of memory error detected"
+            exit 1
+          fi
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Build failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: Upload macOS DMG
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -140,7 +165,7 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
         with:
-          node-version: ">=20"
+          node-version: 22
 
       - name: Install Dependencies
         run: npm ci
@@ -181,7 +206,19 @@ jobs:
         run: ls -R bin/linux
 
       - name: Build for Linux
-        run: npm run make-linux
+        run: |
+          set +e
+          npm run make-linux 2>&1 | tee build-output.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if grep -q "FATAL ERROR: Ineffective mark-compacts\|JavaScript heap out of memory\|Allocation failed" build-output.log; then
+            echo "::error::JavaScript heap out of memory error detected"
+            exit 1
+          fi
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Build failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: Upload Linux DEB
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
