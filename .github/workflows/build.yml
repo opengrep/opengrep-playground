@@ -1,0 +1,156 @@
+name: CI - Validate Builds
+
+on:
+    pull_request:
+        branches:
+            - "**"
+
+jobs:
+    build-windows:
+        runs-on: windows-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+            - name: Set Up Node.js
+              uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
+              with:
+                  node-version: ">=20"
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Authenticate GitHub CLI
+              run: |
+                  echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+            - name: Get Latest Successful Run ID
+              id: get-run-id
+              run: |
+                  # Fetch the latest successful run ID for the workflow
+                  $RUN_ID = gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+                  echo "run_id=$RUN_ID" >> $env:GITHUB_ENV
+
+            - name: Output Run ID
+              run: |
+                  echo "The latest successful run ID is: ${{ env.run_id }}"
+
+            - name: Download Artifact
+              run: |
+                  gh run download ${{ env.run_id }} -R opengrep/opengrep -n opengrep-core-and-dependent-libs-w64-artifact
+
+            - name: Unzip opengrep-core-and-dependent-libs-w64-artifact
+              run: mkdir -p opengrep-core-and-dependent-libs-w64-artifact && tar -xzf artifacts.tgz -C opengrep-core-and-dependent-libs-w64-artifact
+
+            - name: Move content to bin/windows
+              run: mkdir -p bin/windows && mv opengrep-core-and-dependent-libs-w64-artifact/artifacts/* bin/windows/
+
+            - name: Rename opengrep-core to opengrep-cli
+              run: mv bin/windows/opengrep-core.exe bin/windows/opengrep-cli.exe
+
+            - name: Show Contents of bin/windows
+              run: ls -R bin/windows
+
+            - name: Build for Windows
+              run: npm run make-win || exit 1
+
+    build-macos:
+        runs-on: macos-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+            - name: Set Up Node.js
+              uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
+              with:
+                  node-version: ">=20"
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Authenticate GitHub CLI
+              run: |
+                  gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+            - name: Get Latest Successful Run ID
+              id: get-run-id
+              run: |
+                  # Fetch the latest successful run ID for the workflow
+                  RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+                  echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+            - name: Output Run ID
+              run: |
+                  echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
+
+            - name: Download Artifact
+              run: |
+                  gh run download ${{ steps.get-run-id.outputs.run_id }} \
+                    -R opengrep/opengrep -n opengrep-osx-arm64
+
+            - name: Unzip opengrep-osx-arm64
+              run: mkdir -p opengrep-osx-arm64 && tar -xzf artifacts.tgz -C opengrep-osx-arm64
+
+            - name: Move content to bin/mac
+              run: mkdir -p bin/macos && mv opengrep-osx-arm64/artifacts/* bin/macos/
+
+            - name: Rename opengrep-core to opengrep-cli
+              run: mv bin/macos/opengrep-core bin/macos/opengrep-cli
+
+            - name: Show Contents of bin/macos
+              run: ls -R bin/macos
+
+            - name: Build for macOS
+              run: npm run make-mac || exit 1
+
+    build-linux:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+            - name: Set Up Node.js
+              uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
+              with:
+                  node-version: ">=20"
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Install Linux Dependencies
+              run: sudo apt-get update && sudo apt-get install -y fakeroot rpm libarchive-tools
+
+            - name: Authenticate GitHub CLI
+              run: |
+                  gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+            - name: Get Latest Successful Run ID
+              id: get-run-id
+              run: |
+                  # Fetch the latest successful run ID for the workflow
+                  RUN_ID=$(gh run list --repo opengrep/opengrep --workflow rolling-release --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+                  echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+            - name: Output Run ID
+              run: |
+                  echo "The latest successful run ID is: ${{ steps.get-run-id.outputs.run_id }}"
+
+            - name: Download Artifact
+              run: |
+                  gh run download ${{ steps.get-run-id.outputs.run_id }} \
+                    -R opengrep/opengrep -n opengrep-core-x86
+
+            - name: Unzip opengrep-core-x86
+              run: mkdir -p opengrep-core-x86 && tar -xzf artifacts.tgz -C opengrep-core-x86
+
+            - name: Move content to bin/linux
+              run: mkdir -p bin/linux && mv opengrep-core-x86/artifacts/* bin/linux/
+
+            - name: Rename opengrep-core to opengrep-cli
+              run: mv bin/linux/opengrep-core bin/linux/opengrep-cli
+
+            - name: Show Contents of bin/linux
+              run: ls -R bin/linux
+
+            - name: Build for Linux
+              run: npm run make-linux || exit 1
