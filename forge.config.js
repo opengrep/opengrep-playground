@@ -35,12 +35,9 @@ module.exports = {
       /^\/out/,
       /^\/\.vscode/,
       /^\/.*\.log$/,
-      // big build caches
       /^\/node_modules\/\.cache/,
       /^\/node_modules\/\.vite/,
-      // optional: keep node_modules lean during packaging
       /^\/node_modules\/\.bin/,
-      // optional: monaco extras that are often not needed at runtime
       /^\/node_modules\/monaco-editor\/dev/,
       /^\/node_modules\/monaco-editor\/min-maps/,
     ],
