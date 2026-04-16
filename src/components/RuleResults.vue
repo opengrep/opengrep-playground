@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { inject, defineEmits, ref, onMounted, watch } from 'vue';
+import { inject, ref, onMounted, watch } from 'vue';
 import { store } from '../store';
 
 const emit = defineEmits(['showDataFlows', 'scrollToCodeSnippet']);
