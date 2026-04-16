@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSafeDir: () => ipcRenderer.invoke("get-safe-dir"),
   getRootDir: () => ipcRenderer.invoke("get-root-dir"),
   showErrorDialog: (errorMessage, error = null) => ipcRenderer.invoke("show-error-dialog", errorMessage, error),
+  openFileDialog: (options = {}) => ipcRenderer.invoke("open-file-dialog", options),
 });
 
 

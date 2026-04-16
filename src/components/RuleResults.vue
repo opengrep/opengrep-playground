@@ -1,4 +1,21 @@
 <template>
+    <div class="scan-options">
+        <h3>Scan options</h3>
+        <label
+            class="taint-toggle"
+            :class="{ 'is-on': store.taintIntrafile }"
+            title="When ON, scans run with --taint-intrafile (intra-file taint analysis enabled).">
+            <input type="checkbox" v-model="store.taintIntrafile" />
+            <span class="taint-toggle__track">
+                <span class="taint-toggle__thumb"></span>
+            </span>
+            <span class="taint-toggle__label">
+                Intrafile tainting:
+                <strong>{{ store.taintIntrafile ? 'ON' : 'OFF' }}</strong>
+            </span>
+        </label>
+    </div>
+
     <div class="results-header">
         <h3>Results</h3>
         <button @click="handleRunBinary" :class="{ 'disabled': store.disableEvalButton }">Evaluate</button>
@@ -77,7 +94,7 @@
 </template>
 
 <script setup>
-import { inject, defineEmits, ref, onMounted } from 'vue';
+import { inject, defineEmits, ref, onMounted, watch } from 'vue';
 import { store } from '../store';
 
 const emit = defineEmits(['showDataFlows', 'scrollToCodeSnippet']);
@@ -95,17 +112,26 @@ onMounted(async () => {
     platform.value = await getPlatform();
 });
 
+// Invalidate stale results whenever a scan option changes — they no longer
+// reflect the current settings and would mislead the user.
+watch(() => store.taintIntrafile, () => {
+    clearResults();
+});
+
+function clearResults() {
+    store.jsonResult = {
+        scanResults: null,
+        testResults: null,
+        parsedTestResults: []
+    };
+}
 
 async function handleRunBinary() {
     if (!store.ruleEditorCode || store.disableEvalButton) return;
 
     isScanLoading.value = true;
     isTestLoading.value = true;
-    store.jsonResult = {
-        scanResults: null,
-        testResults: null,
-        parsedTestResults: []
-    }
+    clearResults();
 
     // Select correct binary based on OS
     let binaryPath = null
@@ -155,8 +181,11 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
         '--json',
         '--dataflow-traces',
         '--experimental',
-        '--taint-intrafile',
     ];
+
+    if (store.taintIntrafile) {
+        scanArgs.push('--taint-intrafile');
+    }
 
     if (!runScanWithoutMatchingExplanations) {
         scanArgs.push('--matching-explanations');
@@ -188,7 +217,11 @@ function extractScanErrors(jsonOutput) {
 async function runBinaryForTests(binaryPath) {
     const testArgs =
       ['scan --test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
-       '--json', '--experimental', '--taint-intrafile'];
+       '--json', '--experimental'];
+
+    if (store.taintIntrafile) {
+        testArgs.push('--taint-intrafile');
+    }
 
     const testResponse = await runBinary(`"${binaryPath}"`, testArgs)
     const testResults = JSON.parse(testResponse.output);
@@ -226,6 +259,89 @@ function scrollToCodeSnippet(lineNumber) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+}
+
+.scan-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e1e4e8;
+    margin-bottom: 8px;
+}
+
+.taint-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-family: monospace;
+    color: #555;
+
+    input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+    }
+
+    .taint-toggle__track {
+        position: relative;
+        display: inline-block;
+        width: 32px;
+        height: 18px;
+        background-color: #bdc3c7;
+        border-radius: 9px;
+        transition: background-color 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .taint-toggle__thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        background-color: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .taint-toggle__label strong {
+        font-weight: bold;
+        color: #7f8c8d;
+    }
+
+    &.is-on {
+        color: #2c3e50;
+
+        .taint-toggle__track {
+            background-color: #3498db;
+        }
+
+        .taint-toggle__thumb {
+            transform: translateX(14px);
+        }
+
+        .taint-toggle__label strong {
+            color: #2980b9;
+        }
+    }
+
+    &:hover .taint-toggle__track {
+        filter: brightness(0.95);
+    }
+
+    input[type="checkbox"]:focus-visible + .taint-toggle__track {
+        outline: 2px solid #3498db;
+        outline-offset: 2px;
+    }
 }
 
 .result-footer {

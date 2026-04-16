@@ -5,6 +5,10 @@
       <div class="column-view resizable">
         <div class="editor-header">
           <h3>Rule</h3>
+          <div class="editor-actions">
+            <button class="editor-action" @click="loadRuleFromFile" title="Load a YAML rule file from disk">Load file...</button>
+            <button class="editor-action editor-action--ghost" @click="clearRule" title="Clear the rule editor">Clear</button>
+          </div>
         </div>
         <div class="code-editor-container">
           <RuleEditor @ruleEditorUpdated="handleRuleEditorUpdate" />
@@ -16,6 +20,10 @@
       <div class="column-view resizable">
         <div class="editor-header">
           <h3>Code to Test</h3>
+          <div class="editor-actions">
+            <button class="editor-action" @click="loadCodeFromFile" title="Load a code file from disk">Load file...</button>
+            <button class="editor-action editor-action--ghost" @click="clearCode" title="Clear the code editor">Clear</button>
+          </div>
         </div>
         <div class="code-editor-container">
           <CodeEditor ref="codeEditor" @codeEditorUpdated="handleCodeEditorUpdate" />
@@ -50,6 +58,7 @@ const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
 const showErrorDialog = inject('$showErrorDialog');
+const openFileDialog = inject('$openFileDialog');
 
 const codeEditor = ref(null);
 const resizingColumn = ref(null);
@@ -120,6 +129,50 @@ function stopResize() {
 function handleScrollToCodeSnippet(lineNumber) {
   if (codeEditor.value) {
     codeEditor.value.scrollToCodeSnippet(lineNumber)
+  }
+}
+
+function clearRule() {
+  // Setting the store empties the Monaco model via RuleEditor's watcher,
+  // which in turn disables the Evaluate button.
+  store.ruleEditorCode = { originalRule: '', normalizedRule: '' };
+}
+
+function clearCode() {
+  store.codeEditorCode = '';
+}
+
+async function loadRuleFromFile() {
+  await loadIntoEditor({
+    title: 'Load rule file',
+    filters: [{ name: 'YAML', extensions: ['yaml', 'yml'] }],
+    apply: (content) => {
+      store.ruleEditorCode = { originalRule: content, normalizedRule: content };
+    },
+  });
+}
+
+async function loadCodeFromFile() {
+  await loadIntoEditor({
+    title: 'Load code file',
+    filters: [{ name: 'All Files', extensions: ['*'] }],
+    apply: (content) => {
+      store.codeEditorCode = content;
+    },
+  });
+}
+
+async function loadIntoEditor({ title, filters, apply }) {
+  try {
+    const result = await openFileDialog({ title, filters });
+    if (!result || result.canceled) return;
+    if (result.error) {
+      showErrorDialog(`Error loading file: ${result.error}`, result.error);
+      return;
+    }
+    apply(result.content);
+  } catch (error) {
+    showErrorDialog(`Error loading file: ${error}`, error);
   }
 }
 </script>
@@ -197,6 +250,7 @@ $secondary-color: #2ecc71;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 
     select {
       background-color: $primary-color;
@@ -207,6 +261,38 @@ $secondary-color: #2ecc71;
       cursor: pointer;
       outline: none;
       transition: background-color 0.3s ease;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .editor-action {
+      background-color: $primary-color;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: darken($primary-color, 8%);
+      }
+
+      &.editor-action--ghost {
+        background-color: transparent;
+        color: #555;
+        border: 1px solid #bdc3c7;
+
+        &:hover {
+          background-color: #ecf0f1;
+          color: #2c3e50;
+        }
+      }
     }
   }
 

@@ -175,6 +175,34 @@ app.whenReady().then(() => {
     return os.platform();
   });
 
+  // Open a native file picker and return the chosen file's contents.
+  // Returns { canceled: true } when the user dismisses the dialog.
+  ipcMain.handle("open-file-dialog", async (event, options = {}) => {
+    try {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      const dialogOptions = {
+        properties: ['openFile'],
+        filters: options.filters || [{ name: 'All Files', extensions: ['*'] }],
+      };
+      if (options.title) dialogOptions.title = options.title;
+
+      const result = window
+        ? await dialog.showOpenDialog(window, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { canceled: true };
+      }
+
+      const filePath = result.filePaths[0];
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      return { canceled: false, filePath, content };
+    } catch (error) {
+      fs.writeFileSync(errorLogPath, `Error opening file dialog: ${error}\n\n`, { flag: 'a' });
+      return { error: error.message };
+    }
+  });
+
   ipcMain.handle("show-error-dialog", (event, errorMessage, error) => {
     try {
       if (!!error) {
