@@ -33,7 +33,7 @@
 
       <!-- Results Viewer -->
       <div class="column-view resizable" style="flex-grow: 1;">
-        <RuleResults style="flex: 1; display: 'grid'; gap: '12px'" @showDataFlows="handleShowDataFlows"
+        <RuleResults @showDataFlows="handleShowDataFlows"
           @scrollToCodeSnippet="handleScrollToCodeSnippet" />
         <div class="resize-handle" @mousedown="startResize($event, 2)"></div>
       </div>
@@ -178,6 +178,8 @@ async function loadIntoEditor({ title, filters, apply }) {
 </script>
 
 <style lang="scss">
+@use 'sass:color';
+
 $border-color: #3c3c3c;
 $primary-color: #3498db;
 $secondary-color: #2ecc71;
@@ -280,7 +282,7 @@ $secondary-color: #2ecc71;
       transition: background-color 0.2s ease;
 
       &:hover {
-        background-color: darken($primary-color, 8%);
+        background-color: color.adjust($primary-color, $lightness: -8%);
       }
 
       &.editor-action--ghost {
