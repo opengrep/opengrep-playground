@@ -29,6 +29,7 @@ app.provide('$readDir', window.electronAPI.readDir);
 app.provide('$removeDir', window.electronAPI.removeDir);
 app.provide('$runBinary', window.electronAPI.runBinary);
 app.provide('$showErrorDialog', window.electronAPI.showErrorDialog);
+app.provide('$openFileDialog', window.electronAPI.openFileDialog);
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
