@@ -19,4 +19,5 @@ export const store = reactive({
     codeEditorDebugLocation: null,
     mustNotMatchTestCases: [],
     disableEvalButton: true,
+    taintIntrafile: true,
 });
