@@ -5,7 +5,7 @@
   "description": "Opengrep Playground Editor",
   "main": ".vite/build/main.js",
   "engines": {
-    "node": 22
+    "node": ">=22.12"
   },
   "scripts": {
     "start": "electron-forge start",
@@ -29,9 +29,9 @@
     "@electron-forge/plugin-vite": "7.11.1",
     "@electron/fuses": "1.8.0",
     "@vitejs/plugin-vue": "6.0.3",
-    "electron": "40.0.0",
+    "electron": "40.8.5",
     "sass-embedded": "1.97.2",
-    "vite": "7.3.1"
+    "vite": "7.3.2"
   },
   "keywords": [],
   "license": "MIT",
@@ -44,5 +44,11 @@
     "js-yaml": "4.1.1",
     "monaco-yaml": "5.4.0",
     "vue": "3.5.26"
+  },
+  "overrides": {
+    "tar": "7.5.13",
+    "tmp": "0.2.4",
+    "dompurify": "3.4.0",
+    "@tootallnate/once": "3.0.1"
   }
 }
