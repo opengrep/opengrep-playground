@@ -55,7 +55,7 @@ app.whenReady().then(() => {
       fs.writeFileSync(infoLogPath, `Running binary: ${binaryPath} ${args}\n\n`, { flag: 'a' });
       console.log("Running binary:", binaryPath, args);
 
-      const child = spawn(binaryPath, args, { shell: true });
+      const child = spawn(binaryPath, args);
 
       let output = "";
       let errorOutput = "";
@@ -93,17 +93,6 @@ app.whenReady().then(() => {
     });
   });
 
-
-  // Handle file reading from the main process
-  ipcMain.handle("read-file", async (event, filePath) => {
-    try {
-      const data = await fs.promises.readFile(filePath, "utf-8");
-      return data;
-    } catch (error) {
-      fs.writeFileSync(errorLogPath, `Error reading file: ${error}\n\n`, { flag: 'a' });
-      return { error: error.message };
-    }
-  });
 
   // Handle file writing from the main process
   ipcMain.handle("write-file", async (event, filePath, content, options) => {

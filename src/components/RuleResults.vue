@@ -177,7 +177,8 @@ async function handleRunBinary() {
 async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) {
     const scanArgs = [
         'scan',
-        `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
+        '-f', store.ruleFilePath,
+        store.codeSampleFilePath,
         '--json',
         '--dataflow-traces',
         '--experimental',
@@ -191,7 +192,7 @@ async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) 
         scanArgs.push('--matching-explanations');
     }
 
-    const scanResponse = await runBinary(`"${binaryPath}"`, scanArgs);
+    const scanResponse = await runBinary(binaryPath, scanArgs);
     if (scanResponse.errorOutput && !scanResponse.output) {
         throw new Error(scanResponse.errorOutput);
     }
@@ -216,14 +217,14 @@ function extractScanErrors(jsonOutput) {
 
 async function runBinaryForTests(binaryPath) {
     const testArgs =
-      ['scan --test', `-f "${store.ruleFilePath}" "${store.codeSampleFilePath}"`,
+      ['scan', '--test', '-f', store.ruleFilePath, store.codeSampleFilePath,
        '--json', '--experimental'];
 
     if (store.taintIntrafile) {
         testArgs.push('--taint-intrafile');
     }
 
-    const testResponse = await runBinary(`"${binaryPath}"`, testArgs)
+    const testResponse = await runBinary(binaryPath, testArgs)
     const testResults = JSON.parse(testResponse.output);
 
     const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];
