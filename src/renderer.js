@@ -18,15 +18,13 @@ library.add(far);
 app.component('font-awesome-icon', FontAwesomeIcon);
 
 app.provide('$electronAPI', window.electronAPI);
-app.provide('$getPlatform', window.electronAPI.getPlatform);
 app.provide('$getSafeDir', window.electronAPI.getSafeDir);
-app.provide('$getRootDir', window.electronAPI.getRootDir);
 app.provide('$joinPath', window.electronAPI.joinPath);
 app.provide('$writeFile', window.electronAPI.writeFile);
 app.provide('$removeFile', window.electronAPI.removeFile);
 app.provide('$readDir', window.electronAPI.readDir);
 app.provide('$removeDir', window.electronAPI.removeDir);
-app.provide('$runBinary', window.electronAPI.runBinary);
+app.provide('$runOpengrep', window.electronAPI.runOpengrep);
 app.provide('$showErrorDialog', window.electronAPI.showErrorDialog);
 app.provide('$openFileDialog', window.electronAPI.openFileDialog);
 

@@ -94,23 +94,16 @@
 </template>
 
 <script setup>
-import { inject, ref, onMounted, watch } from 'vue';
+import { inject, ref, watch } from 'vue';
 import { store } from '../store';
 
 const emit = defineEmits(['showDataFlows', 'scrollToCodeSnippet']);
 
-const joinPath = inject('$joinPath');
-const runBinary = inject('$runBinary');
-const getPlatform = inject('$getPlatform');
+const runOpengrep = inject('$runOpengrep');
 const showErrorDialog = inject('$showErrorDialog');
 
 const isScanLoading = ref(false);
 const isTestLoading = ref(false);
-const platform = ref(null);
-
-onMounted(async () => {
-    platform.value = await getPlatform();
-});
 
 // Invalidate stale results whenever a scan option changes — they no longer
 // reflect the current settings and would mislead the user.
@@ -133,22 +126,9 @@ async function handleRunBinary() {
     isTestLoading.value = true;
     clearResults();
 
-    // Select correct binary based on OS
-    let binaryPath = null
-    switch (platform.value) {
-        case 'win32':
-            binaryPath = await joinPath(store.rootDir, 'bin', 'windows', 'opengrep-cli.exe');
-            break;
-        case 'darwin':
-            binaryPath = await joinPath(store.rootDir, 'bin', 'macos', 'opengrep-cli');
-            break;
-        default:
-            binaryPath = await joinPath(store.rootDir, 'bin', 'linux', 'opengrep-cli');
-    }
-
     // Run tests
     try {
-        await runBinaryForTests(binaryPath);
+        await runBinaryForTests();
     } catch (error) {
         console.error("Error running tests:", error);
         showErrorDialog(`Error running tests: Please consult the error.log file at ${store.safeDir}`, error);
@@ -159,7 +139,7 @@ async function handleRunBinary() {
     // Run scan with retrying incase of error
     let retryAttempted = true;
     try {
-        await runBinaryForScan(binaryPath, false);
+        await runBinaryForScan(false);
     } catch (error) {
         console.error("Error running scanning:", error);
         if (!retryAttempted) {
@@ -168,31 +148,18 @@ async function handleRunBinary() {
         }
 
         retryAttempted = false;
-        await runBinaryForScan(binaryPath, true);
+        await runBinaryForScan(true);
     } finally {
         isScanLoading.value = false;
     }
 }
 
-async function runBinaryForScan(binaryPath, runScanWithoutMatchingExplanations) {
-    const scanArgs = [
-        'scan',
-        '-f', store.ruleFilePath,
-        store.codeSampleFilePath,
-        '--json',
-        '--dataflow-traces',
-        '--experimental',
-    ];
-
-    if (store.taintIntrafile) {
-        scanArgs.push('--taint-intrafile');
-    }
-
-    if (!runScanWithoutMatchingExplanations) {
-        scanArgs.push('--matching-explanations');
-    }
-
-    const scanResponse = await runBinary(binaryPath, scanArgs);
+async function runBinaryForScan(runScanWithoutMatchingExplanations) {
+    const scanResponse = await runOpengrep('scan', {
+        extension: store.languageDetails?.extension,
+        taintIntrafile: store.taintIntrafile,
+        matchingExplanations: !runScanWithoutMatchingExplanations,
+    });
     if (scanResponse.errorOutput && !scanResponse.output) {
         throw new Error(scanResponse.errorOutput);
     }
@@ -215,16 +182,11 @@ function extractScanErrors(jsonOutput) {
     });
 }
 
-async function runBinaryForTests(binaryPath) {
-    const testArgs =
-      ['scan', '--test', '-f', store.ruleFilePath, store.codeSampleFilePath,
-       '--json', '--experimental'];
-
-    if (store.taintIntrafile) {
-        testArgs.push('--taint-intrafile');
-    }
-
-    const testResponse = await runBinary(binaryPath, testArgs)
+async function runBinaryForTests() {
+    const testResponse = await runOpengrep('test', {
+        extension: store.languageDetails?.extension,
+        taintIntrafile: store.taintIntrafile,
+    });
     const testResults = JSON.parse(testResponse.output);
 
     const extractTestErrors = testResults.config_with_errors?.map(configError => configError.error) || [];

@@ -6,11 +6,9 @@ export const store = reactive({
         testResults: null,
         parsedTestResults: [],
     },
-    rootDir: '',
     safeDir: '',
     languageDetails: null,
     ruleFilePath: '',
-    codeSampleFilePath: '',
     ruleEditorCode: {
         originalRule: '',
         normalizedRule: ''

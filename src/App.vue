@@ -53,7 +53,6 @@ import DebugSection from './components/DebugSection.vue';
 import RuleEditor from './components/RuleEditor.vue';
 import { store } from './store';
 
-const getRootDir = inject('$getRootDir');
 const getSafeDir = inject('$getSafeDir');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
@@ -67,7 +66,6 @@ const startWidth = ref(0);
 
 onMounted(async () => {
   store.safeDir = await getSafeDir();
-  store.rootDir = await getRootDir();
 });
 
 function handleShowDataFlows(dataFlows) {
@@ -84,7 +82,6 @@ async function handleCodeEditorUpdate() {
 
     const codeSampleFilePath = await joinPath(store.safeDir, "tmp", `untitled_code.${store.languageDetails?.extension}`);
     await writeFile(codeSampleFilePath, store.codeEditorCode, { flag: 'w' }); // 'w' flag to create or overwrite the file
-    store.codeSampleFilePath = codeSampleFilePath;
 
   } catch (error) {
     showErrorDialog(`Error saving code: ${error}`, error);

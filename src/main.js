@@ -11,6 +11,37 @@ if (started) {
   app.quit();
 }
 
+// Resolve the bundled opengrep CLI for the current platform. The path is built
+// entirely here in the main process so the renderer can never choose which
+// executable is launched.
+const resolveOpengrepBinary = () => {
+  const rootDir = app.isPackaged ? process.resourcesPath : app.getAppPath();
+  switch (os.platform()) {
+    case 'win32':
+      return path.join(rootDir, 'bin', 'windows', 'opengrep-cli.exe');
+    case 'darwin':
+      return path.join(rootDir, 'bin', 'macos', 'opengrep-cli');
+    default:
+      return path.join(rootDir, 'bin', 'linux', 'opengrep-cli');
+  }
+};
+
+// Build the opengrep argument vector. The command verb, flags and file paths
+// are all fixed here; the renderer only selects the mode and a couple of
+// boolean toggles, so no renderer value is interpolated into the command.
+const buildOpengrepArgs = (mode, ruleFile, codeFile, options) => {
+  const args = mode === 'test'
+    ? ['scan', '--test', '-f', ruleFile, codeFile, '--json', '--experimental']
+    : ['scan', '-f', ruleFile, codeFile, '--json', '--dataflow-traces', '--experimental'];
+  if (options.taintIntrafile) {
+    args.push('--taint-intrafile');
+  }
+  if (mode === 'scan' && options.matchingExplanations) {
+    args.push('--matching-explanations');
+  }
+  return args;
+};
+
 const createWindow = () => {
   // Create the browser window.
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -49,11 +80,31 @@ app.whenReady().then(() => {
   fs.writeFileSync(errorLogPath, '', { flag: 'w' });
   fs.writeFileSync(infoLogPath, '', { flag: 'w' });
 
-  // Handle running binaries from the main process
-  ipcMain.handle("run-binary", async (event, binaryPath, args = []) => {
+  // Handle running opengrep from the main process. The binary, command verb,
+  // flags and file paths are all resolved here; the renderer supplies only the
+  // mode, the code sample's file extension and a couple of boolean toggles, so
+  // no renderer-controlled value is ever used to choose or construct the
+  // command.
+  ipcMain.handle("run-opengrep", async (event, mode, options = {}) => {
     return new Promise((resolve, reject) => {
-      fs.writeFileSync(infoLogPath, `Running binary: ${binaryPath} ${args}\n\n`, { flag: 'a' });
-      console.log("Running binary:", binaryPath, args);
+      if (mode !== 'scan' && mode !== 'test') {
+        reject(new Error(`Invalid opengrep mode: ${mode}`));
+        return;
+      }
+      const { extension } = options;
+      if (typeof extension !== 'string' || !/^[A-Za-z0-9]+$/.test(extension)) {
+        reject(new Error('Invalid code sample extension'));
+        return;
+      }
+
+      const binaryPath = resolveOpengrepBinary();
+      const tmpDir = path.join(basePath, 'tmp');
+      const ruleFile = path.join(tmpDir, 'untitled_rule.yaml');
+      const codeFile = path.join(tmpDir, `untitled_code.${extension}`);
+      const args = buildOpengrepArgs(mode, ruleFile, codeFile, options);
+
+      fs.writeFileSync(infoLogPath, `Running opengrep: ${binaryPath} ${args.join(' ')}\n\n`, { flag: 'a' });
+      console.log("Running opengrep:", binaryPath, args);
 
       const child = spawn(binaryPath, args);
 
@@ -153,15 +204,6 @@ app.whenReady().then(() => {
   // Handle getting the root directory from the main process
   ipcMain.handle("get-safe-dir", () => {
     return path.join(basePath);
-  });
-
-  // Handle getting the root directory from the main process
-  ipcMain.handle("get-root-dir", () => {
-    return app.isPackaged ? process.resourcesPath : app.getAppPath();
-  });
-
-  ipcMain.handle("get-platform", () => {
-    return os.platform();
   });
 
   // Open a native file picker and return the chosen file's contents.
