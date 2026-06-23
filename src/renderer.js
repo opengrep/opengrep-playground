@@ -22,7 +22,6 @@ app.provide('$getPlatform', window.electronAPI.getPlatform);
 app.provide('$getSafeDir', window.electronAPI.getSafeDir);
 app.provide('$getRootDir', window.electronAPI.getRootDir);
 app.provide('$joinPath', window.electronAPI.joinPath);
-app.provide('$readFile', window.electronAPI.readFile);
 app.provide('$writeFile', window.electronAPI.writeFile);
 app.provide('$removeFile', window.electronAPI.removeFile);
 app.provide('$readDir', window.electronAPI.readDir);

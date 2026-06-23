@@ -6,7 +6,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getPlatform: () => ipcRenderer.invoke("get-platform"),
   runBinary: (binaryPath, args) =>
     ipcRenderer.invoke("run-binary", binaryPath, args),
-  readFile: (filePath) => ipcRenderer.invoke("read-file", filePath),
   writeFile: (filePath, content, options) => ipcRenderer.invoke("write-file", filePath, content, options),
   removeFile: (filePath) => ipcRenderer.invoke("remove-file", filePath),
   readDir: (path) => ipcRenderer.invoke("read-dir", path),
