@@ -232,6 +232,36 @@ function determineHighlightLinesFromTestResult(rawTestResults) {
     componentState.existingHighlightLinesFromTestResult = editorRef.value.deltaDecorations(componentState.existingHighlightLinesFromTestResult, newDecorations);
 }
 
+function extractTraceSteps(trace) {
+    if (!trace?.length) return [];
+    const [kind, payload] = trace;
+    if (kind === 'CliLoc' && Array.isArray(payload)) {
+        return [{ location: payload[0], snippet: payload[1], stepKind: 'loc' }];
+    }
+    if (kind === 'CliCall' && Array.isArray(payload)) {
+        const steps = [];
+        const [callSite, , inner] = payload;
+        if (Array.isArray(callSite) && callSite[0]?.start) {
+            steps.push({ location: callSite[0], snippet: callSite[1], stepKind: 'call' });
+        }
+        if (inner?.[0] === 'CliLoc' && Array.isArray(inner[1])) {
+            steps.push({ location: inner[1][0], snippet: inner[1][1], stepKind: 'calleeLoc' });
+        }
+        return steps;
+    }
+    return [];
+}
+
+function sourceStepMessage(step, steps) {
+    if (step.stepKind === 'call') {
+        return '⨀ Taint crosses function call: ';
+    }
+    if (step.stepKind === 'calleeLoc' && steps.some((s) => s.stepKind === 'call')) {
+        return '⨀ Taint is modeled through callee parameter: ';
+    }
+    return '⨀ Taint originates from this source: ';
+}
+
 function determineCodeFlowInformation(dataFlows) {
     editorRef.value.changeViewZones(accessor => {
         // Remove existing annotation zones
@@ -248,17 +278,20 @@ function determineCodeFlowInformation(dataFlows) {
             }));
         };
 
-        if (dataFlows.taint_source?.length && Array.isArray(dataFlows.taint_source[1])) {
-            addAnnotationZone(`A${index++}`, `⨀ Taint originates from this source: `, dataFlows.taint_source[1][0], dataFlows.taint_source[1][1]);
-        }
+        extractTraceSteps(dataFlows.taint_source).forEach((step, stepIndex, steps) => {
+            addAnnotationZone(`A${index++}`, sourceStepMessage(step, steps), step.location, step.snippet);
+        });
 
         dataFlows.intermediate_vars?.forEach((intermediateVar) => {
             addAnnotationZone(`A${index++}`, `→ Taint flows through this intermediate variable: `, intermediateVar.location, intermediateVar.content);
         });
 
-        if (dataFlows.taint_sink?.length && Array.isArray(dataFlows.taint_sink[1])) {
-            addAnnotationZone(`A${index}`, `◉ Taint flows to this sink: `, dataFlows.taint_sink[1][0], dataFlows.taint_sink[1][1]);
-        }
+        extractTraceSteps(dataFlows.taint_sink).forEach((step, stepIndex, steps) => {
+            const message = stepIndex < steps.length - 1
+                ? `◉ Taint crosses function call: `
+                : `◉ Taint flows to this sink: `;
+            addAnnotationZone(`A${index++}`, message, step.location, step.snippet);
+        });
     });
 }
 
