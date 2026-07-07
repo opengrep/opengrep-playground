@@ -240,26 +240,47 @@ function extractTraceSteps(trace) {
     }
     if (kind === 'CliCall' && Array.isArray(payload)) {
         const steps = [];
-        const [callSite, , inner] = payload;
+        const [callSite, callIntermediates, inner] = payload;
         if (Array.isArray(callSite) && callSite[0]?.start) {
             steps.push({ location: callSite[0], snippet: callSite[1], stepKind: 'call' });
         }
-        if (inner?.[0] === 'CliLoc' && Array.isArray(inner[1])) {
-            steps.push({ location: inner[1][0], snippet: inner[1][1], stepKind: 'calleeLoc' });
+        if (Array.isArray(callIntermediates)) {
+            for (const intermediateVar of callIntermediates) {
+                if (intermediateVar?.location?.start) {
+                    steps.push({
+                        location: intermediateVar.location,
+                        snippet: intermediateVar.content,
+                        stepKind: 'intermediate',
+                    });
+                }
+            }
+        }
+        if (inner?.length) {
+            steps.push(...extractTraceSteps(inner));
         }
         return steps;
     }
     return [];
 }
 
-function sourceStepMessage(step, steps) {
+function sourceStepMessage(step) {
+    if (step.stepKind === 'intermediate') {
+        return '→ Taint flows through this intermediate variable: ';
+    }
     if (step.stepKind === 'call') {
         return '⨀ Taint crosses function call: ';
     }
-    if (step.stepKind === 'calleeLoc' && steps.some((s) => s.stepKind === 'call')) {
-        return '⨀ Taint is modeled through callee parameter: ';
-    }
     return '⨀ Taint originates from this source: ';
+}
+
+function sinkStepMessage(step) {
+    if (step.stepKind === 'intermediate') {
+        return '→ Taint flows through this intermediate variable: ';
+    }
+    if (step.stepKind === 'call') {
+        return '◉ Taint crosses function call: ';
+    }
+    return '◉ Taint flows to this sink: ';
 }
 
 function determineCodeFlowInformation(dataFlows) {
@@ -278,19 +299,16 @@ function determineCodeFlowInformation(dataFlows) {
             }));
         };
 
-        extractTraceSteps(dataFlows.taint_source).forEach((step, stepIndex, steps) => {
-            addAnnotationZone(`A${index++}`, sourceStepMessage(step, steps), step.location, step.snippet);
+        extractTraceSteps(dataFlows.taint_source).forEach((step) => {
+            addAnnotationZone(`A${index++}`, sourceStepMessage(step), step.location, step.snippet);
         });
 
         dataFlows.intermediate_vars?.forEach((intermediateVar) => {
             addAnnotationZone(`A${index++}`, `→ Taint flows through this intermediate variable: `, intermediateVar.location, intermediateVar.content);
         });
 
-        extractTraceSteps(dataFlows.taint_sink).forEach((step, stepIndex, steps) => {
-            const message = stepIndex < steps.length - 1
-                ? `◉ Taint crosses function call: `
-                : `◉ Taint flows to this sink: `;
-            addAnnotationZone(`A${index++}`, message, step.location, step.snippet);
+        extractTraceSteps(dataFlows.taint_sink).forEach((step) => {
+            addAnnotationZone(`A${index++}`, sinkStepMessage(step), step.location, step.snippet);
         });
     });
 }
