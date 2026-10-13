@@ -177,6 +177,34 @@ jobs:
         with:
           fetch-depth: 0 # Required for commit history analysis
 
+      - name: Read Versions
+        id: versions
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          version=$(jq -r .version package.json)
+          echo "tag=${INPUT_TAG:-v$version}" >> "$GITHUB_OUTPUT"
+          echo "opengrep=$(jq -r .opengrepVersion package.json)" >> "$GITHUB_OUTPUT"
+
+      # A published release must never be turned back into a draft or have its
+      # assets replaced, so the release is skipped when its tag is already
+      # published. The tag endpoint returns published releases only, never drafts.
+      - name: Check Release Is Not Published
+        id: published
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.versions.outputs.tag }}
+        run: |
+          if out=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" 2>&1); then
+            echo "::notice::Release $TAG is already published; bump version in package.json to release again."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "HTTP 404" <<< "$out"; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"
+            exit 1
+          fi
+
       - name: Download Windows Build (ZIP)
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
@@ -217,13 +245,15 @@ jobs:
         run: ls -R out/make/
 
       - name: Create GitHub Release
+        if: steps.published.outputs.published == 'false'
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: "Rolling Release (Latest from main)"
-          body: "🚀 This is a rolling release built from the main branch."
+          tag_name: ${{ steps.versions.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.versions.outputs.tag }}
+          body: "Bundles Opengrep v${{ steps.versions.outputs.opengrep }}"
           draft: true
-          prerelease: true
+          prerelease: false
           files: |
             out/make/zip/win32/x64/*
             out/make/dmg/arm64/*
