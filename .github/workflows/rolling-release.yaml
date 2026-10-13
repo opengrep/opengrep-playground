@@ -6,11 +6,6 @@ on:
       - main
 
   workflow_dispatch:
-    inputs:
-      tag:
-        description: the tag to use
-        required: true
-        type: string
 
 permissions: {}
 
@@ -179,11 +174,8 @@ jobs:
 
       - name: Read Versions
         id: versions
-        env:
-          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          version=$(jq -r .version package.json)
-          echo "tag=${INPUT_TAG:-v$version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
           echo "opengrep=$(jq -r .opengrepVersion package.json)" >> "$GITHUB_OUTPUT"
 
       # A published release must never be turned back into a draft or have its
