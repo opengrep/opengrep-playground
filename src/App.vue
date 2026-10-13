@@ -42,6 +42,10 @@
     <div class="meta-section">
       <DebugSection style="flex: 3;" class="scroll-container" @scrollToCodeSnippet="handleScrollToCodeSnippet" />
     </div>
+    <!-- Version Footer -->
+    <footer v-if="versions" class="version-footer">
+      Opengrep {{ versions.opengrep || 'version unavailable' }} · Playground {{ versions.playground }}
+    </footer>
   </div>
 </template>
 
@@ -54,6 +58,7 @@ import RuleEditor from './components/RuleEditor.vue';
 import { store } from './store';
 
 const getSafeDir = inject('$getSafeDir');
+const getVersions = inject('$getVersions');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
 const showErrorDialog = inject('$showErrorDialog');
@@ -63,9 +68,11 @@ const codeEditor = ref(null);
 const resizingColumn = ref(null);
 const startX = ref(0);
 const startWidth = ref(0);
+const versions = ref(null);
 
 onMounted(async () => {
   store.safeDir = await getSafeDir();
+  versions.value = await getVersions();
 });
 
 function handleShowDataFlows(dataFlows) {
@@ -304,6 +311,15 @@ $secondary-color: #2ecc71;
     position: relative;
     height: 100%;
     width: 100%;
+  }
+
+  .version-footer {
+    flex: none;
+    padding: 4px 15px;
+    border-top: 1px solid #e0e0e0;
+    font-family: monospace;
+    font-size: 11px;
+    color: #7f8c8d;
   }
 }
 

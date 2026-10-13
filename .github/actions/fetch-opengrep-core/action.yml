@@ -1,7 +1,8 @@
 name: Fetch opengrep-core
 description: >
   Download opengrep-core from the opengrep/opengrep release whose tag matches
-  the version in package.json, and place it in bin/<platform> as opengrep-cli.
+  opengrepVersion in package.json, and place it in bin/<platform> as
+  opengrep-cli.
 
 runs:
   using: composite
@@ -12,7 +13,7 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        $tag = 'v' + (Get-Content package.json -Raw | ConvertFrom-Json).version
+        $tag = 'v' + (Get-Content package.json -Raw | ConvertFrom-Json).opengrepVersion
         $asset = 'opengrep-core_windows_x86.zip'
         gh release download $tag -R opengrep/opengrep -p $asset -D $env:RUNNER_TEMP
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -30,7 +31,7 @@ runs:
           Linux) dir=bin/linux; asset=opengrep-core_linux_x86.tar.gz ;;
           *) echo "::error::Unsupported runner OS: $RUNNER_OS"; exit 1 ;;
         esac
-        tag="v$(jq -r .version package.json)"
+        tag="v$(jq -r .opengrepVersion package.json)"
         gh release download "$tag" -R opengrep/opengrep -p "$asset" -D "$RUNNER_TEMP"
         mkdir -p "$dir"
         tar -xzf "$RUNNER_TEMP/$asset" -C "$dir"

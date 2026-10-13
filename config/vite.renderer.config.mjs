@@ -7,15 +7,15 @@ export default defineConfig({
   build: {
     // Reduce memory pressure during build
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      // Limit parallel file operations to reduce memory usage in CI
-      maxParallelFileOps: 5,
+    rolldownOptions: {
       output: {
         // Split Monaco Editor into separate chunks to reduce memory usage during build
-        manualChunks: {
-          'monaco-editor': ['monaco-editor'],
-          'monaco-yaml': ['monaco-yaml'],
-          'vue-monaco': ['@guolao/vue-monaco-editor'],
+        codeSplitting: {
+          groups: [
+            { name: 'monaco-editor', test: /[\\/]node_modules[\\/]monaco-editor[\\/]/ },
+            { name: 'monaco-yaml', test: /[\\/]node_modules[\\/]monaco-yaml[\\/]/ },
+            { name: 'vue-monaco', test: /[\\/]node_modules[\\/]@guolao[\\/]vue-monaco-editor[\\/]/ },
+          ],
         },
       },
     },
