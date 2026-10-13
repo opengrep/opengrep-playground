@@ -175,7 +175,9 @@ jobs:
       - name: Read Versions
         id: versions
         run: |
-          echo "tag=v$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+          version=$(jq -r .version package.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "opengrep=$(jq -r .opengrepVersion package.json)" >> "$GITHUB_OUTPUT"
 
       # A published release must never be turned back into a draft or have its
@@ -242,7 +244,7 @@ jobs:
         with:
           tag_name: ${{ steps.versions.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: ${{ steps.versions.outputs.tag }}
+          name: ${{ steps.versions.outputs.version }}
           body: "Bundles Opengrep v${{ steps.versions.outputs.opengrep }}"
           draft: true
           prerelease: false
