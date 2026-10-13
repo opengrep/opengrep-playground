@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeDir: (path) => ipcRenderer.invoke("remove-dir", path),
   joinPath: (...segments) => ipcRenderer.invoke("join-path", ...segments),
   getSafeDir: () => ipcRenderer.invoke("get-safe-dir"),
+  getVersions: () => ipcRenderer.invoke("get-versions"),
   showErrorDialog: (errorMessage, error = null) => ipcRenderer.invoke("show-error-dialog", errorMessage, error),
   openFileDialog: (options = {}) => ipcRenderer.invoke("open-file-dialog", options),
 });

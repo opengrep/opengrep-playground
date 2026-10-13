@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { spawn } from 'child_process';
+import { spawn, execFile } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
@@ -41,6 +41,16 @@ const buildOpengrepArgs = (mode, ruleFile, codeFile, options) => {
   }
   return args;
 };
+
+// Ask the bundled opengrep binary for its version, so the UI reports the
+// engine that actually ships with the app. Resolves to null when the binary
+// cannot be run.
+const queryOpengrepVersion = () =>
+  new Promise((resolve) => {
+    execFile(resolveOpengrepBinary(), ['--version', '--experimental'], (error, stdout) => {
+      resolve(error ? null : stdout.trim());
+    });
+  });
 
 const createWindow = () => {
   // Create the browser window.
@@ -205,6 +215,14 @@ app.whenReady().then(() => {
   ipcMain.handle("get-safe-dir", () => {
     return path.join(basePath);
   });
+
+  // Report the playground and bundled opengrep versions to the renderer. The
+  // opengrep version is queried once at startup and reused for every request.
+  const opengrepVersion = queryOpengrepVersion();
+  ipcMain.handle("get-versions", async () => ({
+    playground: app.getVersion(),
+    opengrep: await opengrepVersion,
+  }));
 
   // Open a native file picker and return the chosen file's contents.
   // Returns { canceled: true } when the user dismisses the dialog.
