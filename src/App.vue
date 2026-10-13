@@ -44,7 +44,7 @@
     </div>
     <!-- Version Footer -->
     <footer v-if="versions" class="version-footer">
-      Opengrep {{ versions.opengrep ? `v${versions.opengrep}` : 'version unavailable' }} · Playground v{{ versions.playground }}
+      Opengrep {{ versions.opengrep || 'version unavailable' }} · Playground {{ versions.playground }}
     </footer>
   </div>
 </template>
