@@ -36,3 +36,20 @@ runs:
         mkdir -p "$dir"
         tar -xzf "$RUNNER_TEMP/$asset" -C "$dir"
         mv "$dir/opengrep-core" "$dir/opengrep-cli"
+
+    - name: Fetch opengrep licence
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        tag="v$(jq -r .opengrepVersion package.json)"
+        mkdir -p bin
+        gh api "repos/opengrep/opengrep/contents/LICENSE?ref=$tag" \
+          -H 'Accept: application/vnd.github.raw' > bin/LICENSE-opengrep.txt
+        cat > bin/NOTICE-opengrep.txt <<EOF
+        This application bundles opengrep-core $tag (as opengrep-cli) from
+        Opengrep, licensed under the GNU Lesser General Public License v2.1.
+        See LICENSE-opengrep.txt for the licence text.
+
+        Source code: https://github.com/opengrep/opengrep/tree/$tag
+        EOF
