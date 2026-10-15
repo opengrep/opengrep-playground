@@ -44,13 +44,17 @@
     </div>
     <!-- Version Footer -->
     <footer v-if="versions" class="version-footer">
-      Opengrep {{ versions.opengrep || 'version unavailable' }} · Playground {{ versions.playground }}
+      <span>Opengrep {{ versions.opengrep || 'version unavailable' }} · Playground {{ versions.playground }}</span>
+      <span v-if="availableUpdate" class="update-notice">
+        Playground {{ availableUpdate }} is available
+        <button class="update-download" @click="openLatestRelease">Download</button>
+      </span>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { onMounted, inject, ref } from 'vue';
+import { onMounted, onUnmounted, inject, ref } from 'vue';
 import CodeEditor from './components/CodeEditor.vue';
 import RuleResults from './components/RuleResults.vue';
 import DebugSection from './components/DebugSection.vue';
@@ -59,6 +63,8 @@ import { store } from './store';
 
 const getSafeDir = inject('$getSafeDir');
 const getVersions = inject('$getVersions');
+const checkForUpdate = inject('$checkForUpdate');
+const openLatestRelease = inject('$openLatestRelease');
 const joinPath = inject('$joinPath');
 const writeFile = inject('$writeFile');
 const showErrorDialog = inject('$showErrorDialog');
@@ -69,11 +75,32 @@ const resizingColumn = ref(null);
 const startX = ref(0);
 const startWidth = ref(0);
 const versions = ref(null);
+const availableUpdate = ref(null);
+
+const UPDATE_TICK_MS = 60 * 60 * 1000;
+let lastUpdateCheckDate = null;
+let updateTimer = null;
+
+async function checkForUpdateDaily() {
+  const today = new Date().toDateString();
+  if (today === lastUpdateCheckDate) return;
+  lastUpdateCheckDate = today;
+  const result = await checkForUpdate();
+  if (result.error) {
+    console.warn(`Update check failed: ${result.error}`);
+    return;
+  }
+  availableUpdate.value = result.version;
+}
 
 onMounted(async () => {
   store.safeDir = await getSafeDir();
   versions.value = await getVersions();
+  checkForUpdateDaily();
+  updateTimer = setInterval(checkForUpdateDaily, UPDATE_TICK_MS);
 });
+
+onUnmounted(() => clearInterval(updateTimer));
 
 function handleShowDataFlows(dataFlows) {
   if (codeEditor.value) {
@@ -188,6 +215,22 @@ $border-color: #3c3c3c;
 $primary-color: #3498db;
 $secondary-color: #2ecc71;
 
+@mixin action-button($padding) {
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: $padding;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: color.adjust($primary-color, $lightness: -8%);
+  }
+}
+
 /* Layout */
 .container {
   display: flex;
@@ -275,19 +318,7 @@ $secondary-color: #2ecc71;
     }
 
     .editor-action {
-      background-color: $primary-color;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-
-      &:hover {
-        background-color: color.adjust($primary-color, $lightness: -8%);
-      }
+      @include action-button(4px 10px);
 
       &.editor-action--ghost {
         background-color: transparent;
@@ -320,6 +351,21 @@ $secondary-color: #2ecc71;
     font-family: monospace;
     font-size: 11px;
     color: #7f8c8d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+
+    .update-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #2c3e50;
+    }
+
+    .update-download {
+      @include action-button(2px 10px);
+    }
   }
 }
 

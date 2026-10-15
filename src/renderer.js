@@ -20,6 +20,8 @@ app.component('font-awesome-icon', FontAwesomeIcon);
 app.provide('$electronAPI', window.electronAPI);
 app.provide('$getSafeDir', window.electronAPI.getSafeDir);
 app.provide('$getVersions', window.electronAPI.getVersions);
+app.provide('$checkForUpdate', window.electronAPI.checkForUpdate);
+app.provide('$openLatestRelease', window.electronAPI.openLatestRelease);
 app.provide('$joinPath', window.electronAPI.joinPath);
 app.provide('$writeFile', window.electronAPI.writeFile);
 app.provide('$removeFile', window.electronAPI.removeFile);
