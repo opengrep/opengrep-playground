@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, net, shell } from 'electron';
 import { spawn, execFile } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -51,6 +51,49 @@ const queryOpengrepVersion = () =>
       resolve(error ? null : stdout.trim());
     });
   });
+
+// Redirects to the latest release tag, never a draft or pre-release.
+const LATEST_RELEASE_URL = 'https://github.com/opengrep/opengrep-playground/releases/latest';
+
+const parseVersion = (version) => {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  return match ? match.slice(1).map(Number) : null;
+};
+
+const isNewerVersion = (candidate, current) => {
+  const candidateParts = parseVersion(candidate);
+  const currentParts = parseVersion(current);
+  if (!candidateParts || !currentParts) return false;
+  const index = candidateParts.findIndex((part, i) => part !== currentParts[i]);
+  return index !== -1 && candidateParts[index] > currentParts[index];
+};
+
+// net.fetch hides the redirect target, so use net.request and stop at it.
+const resolveLatestReleaseUrl = () =>
+  new Promise((resolve, reject) => {
+    const request = net.request({ url: LATEST_RELEASE_URL, method: 'HEAD', redirect: 'manual' });
+    request.on('redirect', (statusCode, method, redirectUrl) => {
+      request.abort();
+      resolve(redirectUrl);
+    });
+    request.on('response', (response) => reject(new Error(`No redirect, status ${response.statusCode}`)));
+    request.on('error', reject);
+    request.end();
+  });
+
+const checkForUpdate = async () => {
+  try {
+    const releaseUrl = await resolveLatestReleaseUrl();
+    const tag = /\/releases\/tag\/([^/]+)$/.exec(releaseUrl)?.[1];
+    if (!tag) {
+      return { error: `Unexpected latest release URL: ${releaseUrl}` };
+    }
+    const version = tag.replace(/^v/, '');
+    return { version: isNewerVersion(version, app.getVersion()) ? version : null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
 
 const createWindow = () => {
   // Create the browser window.
@@ -223,6 +266,10 @@ app.whenReady().then(() => {
     playground: app.getVersion(),
     opengrep: await opengrepVersion,
   }));
+
+  ipcMain.handle("check-for-update", checkForUpdate);
+
+  ipcMain.handle("open-latest-release", () => shell.openExternal(LATEST_RELEASE_URL));
 
   // Open a native file picker and return the chosen file's contents.
   // Returns { canceled: true } when the user dismisses the dialog.
