@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
@@ -14,6 +15,18 @@ binaries.forEach((bin) => {
     fs.chmodSync(binPath, 0o755); // Ensure execute permissions
   }
 });
+
+// rpm >= 4.20 runs %install in %{builddir}, so the relative cp in
+// electron-installer-redhat's default spec fails. Remove once a release fixes it.
+function rpmSpecTemplate() {
+  const src = path.join(path.dirname(require.resolve('electron-installer-redhat')), '..', 'resources', 'spec.ejs');
+  const from = ' usr/* %{buildroot}/usr/';
+  const spec = fs.readFileSync(src, 'utf8');
+  if (!spec.includes(from)) throw new Error(`${src}: %install cp source changed`);
+  const dest = path.join(os.tmpdir(), 'opengrep-playground.spec.ejs');
+  fs.writeFileSync(dest, spec.replace(from, ' %{_topdir}/BUILD/usr/* %{buildroot}/usr/'));
+  return dest;
+}
 
 module.exports = {
   packagerConfig: {
@@ -67,6 +80,7 @@ module.exports = {
             options: {
               maintainer: 'Opengrep',
               categories: ['Utility'],
+              specTemplate: rpmSpecTemplate(),
               fpmOptions: {
                 '--rpm-attr': [
                   '755,root,root:bin/linux/opengrep-cli',
