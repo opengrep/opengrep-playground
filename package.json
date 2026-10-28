@@ -1,8 +1,8 @@
 {
   "name": "opengrep-playground",
   "productName": "opengrep-playground",
-  "version": "2026.10.2",
-  "opengrepVersion": "1.31.0",
+  "version": "2026.10.3",
+  "opengrepVersion": "1.33.0",
   "description": "Opengrep Playground Editor",
   "main": ".vite/build/main.cjs",
   "engines": {
