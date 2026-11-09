@@ -1,10 +1,6 @@
 name: Rolling Release Opengrep Playground App
 
 on:
-  push:
-    branches:
-      - main
-
   workflow_dispatch:
 
 permissions: {}
@@ -163,6 +159,7 @@ jobs:
 
   release:
     needs: [build-windows, build-macos, build-linux]
+    environment: playground release
     runs-on: ubuntu-latest
     permissions:
       contents: write
